@@ -2,7 +2,7 @@ from shapes.Rectangle import Rectangle
 from shapes.JaggedLine import JaggedLine
 from shapes.StraightLine import StraightLine
 
-class ShapeFactory:
+class EntityFactory:
     DISPLAY_ATTRS = [
         'id', 
         'text', 
@@ -19,13 +19,13 @@ class ShapeFactory:
     ]
 
     @staticmethod
-    def create_shape(shape_dict, grid_spacing):
-        if '@vertex' in shape_dict:
-            return Rectangle(shape_dict, grid_spacing)
-        elif '@source' in shape_dict and '@target' in shape_dict:
-            if shape_dict['@source'] == shape_dict['@target']:
-                return JaggedLine(shape_dict, grid_spacing)
+    def create_shape(entity_dictionary, grid_spacing):
+        if '@vertex' in entity_dictionary:
+            return Rectangle(entity_dictionary, grid_spacing)
+        elif '@source' in entity_dictionary and '@target' in entity_dictionary:
+            if entity_dictionary['@source'] == entity_dictionary['@target']:
+                return JaggedLine(entity_dictionary, grid_spacing)
             else:
-                return StraightLine(shape_dict, grid_spacing)
+                return StraightLine(entity_dictionary, grid_spacing)
         else:
             raise ValueError("Invalid shape dictionary provided.")

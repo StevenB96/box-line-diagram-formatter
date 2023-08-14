@@ -1,17 +1,28 @@
-from shape_types.Line import Line
+from entity_types.Connection import Connection
 from utils.Helpers import Helpers
 
-class StraightLine(Line):
-    def __init__(self, shape_dict, grid_spacing):
-        self.shape_dict = shape_dict
+class StraightLine(Connection):
+    def __init__(self, entity_dictionary, grid_spacing):
+        self.entity_dictionary = entity_dictionary
         self.grid_spacing = grid_spacing
+        self.entity_type = Helpers.text_to_entity_type('Connection')
         self.type = Helpers.text_to_type('Straight Line')
 
     @property
     def coordinates(self):
-        source_point = next((coord for coord in self.shape_dict['mxGeometry']['mxPoint'] if coord['@as'] == 'sourcePoint'), None)
-        target_point = next((coord for coord in self.shape_dict['mxGeometry']['mxPoint'] if coord['@as'] == 'targetPoint'), None)
-        return [[source_point['@x'], source_point['@y']], [target_point['@x'], target_point['@y']]]
+        print(self.style)
+        source_point = next((coord for coord in self.entity_dictionary['mxGeometry']['mxPoint'] if coord['@as'] == 'sourcePoint'), None)
+        target_point = next((coord for coord in self.entity_dictionary['mxGeometry']['mxPoint'] if coord['@as'] == 'targetPoint'), None)
+        return [
+            (
+                Helpers.round_to_grid(int(source_point['@x']), self.grid_spacing), 
+                Helpers.round_to_grid(int(source_point['@y']), self.grid_spacing)
+            ),
+            (
+                Helpers.round_to_grid(int(target_point['@x']), self.grid_spacing),
+                Helpers.round_to_grid(int(target_point['@y']), self.grid_spacing)
+            )
+        ]
 
     def __str__(self):
         self_attributes = vars(self)

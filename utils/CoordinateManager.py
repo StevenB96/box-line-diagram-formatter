@@ -1,20 +1,18 @@
+import random
 from utils.Helpers import Helpers
 
 class CoordinateManager:
-    def __init__(self, shapes):
-        self.shapes = []
-        for shape in shapes:
-            if (Helpers.text_to_type('Rectangle') == shape.type):
-                self.shapes.append(shape)
+    def __init__(self, entities, connections):
+        self.entities = []
+        self.connections = connections
+        print(entities, connections)
+        for entity in entities:
+            if (Helpers.text_to_type('Rectangle') == entity.type or Helpers.text_to_type('Straight Line') == entity.type):
+                if(Helpers.text_to_type('Rectangle') == entity.type):
+                    entity.set_grid_center((10 * random.randint(0, 999), 10 * random.randint(0, 999)))
+                self.entities.append(entity)
 
-        self.shapes[0].set_grid_center((510, 180))
-
-        for shape_a in self.shapes:
-            print(shape_a.id)
-            for shape_b in self.shapes:
-                if (shape_a.id != shape_b.id):
-                    print(shape_b.id)
-                    print(self.is_shape_intersection(shape_a, shape_b))
+        print(str(self.check_for_intersections()))
 
     def optimise_coordinates(self, grid_spacing):
         pass
@@ -22,11 +20,18 @@ class CoordinateManager:
     def generate_grid(self, grid_size):
         pass
 
-    def is_shape_intersection(self, shape_a, shape_b):
-        for line_a in shape_a.lines:
-            for line_b in shape_b.lines:
+    def check_for_intersections(self):
+        for entity_a in self.entities:
+            for entity_b in self.entities:
+                if (entity_a.id != entity_b.id):
+                    if (self.is_entity_intersection(entity_a, entity_b)):
+                        return True
+        return False
+
+    def is_entity_intersection(self, entity_a, entity_b):
+        for line_a in entity_a.lines:
+            for line_b in entity_b.lines:
                 if (self.is_line_intersection(line_a, line_b) == True):
-                    print(line_a, line_b)
                     return True
         return False
 
@@ -48,10 +53,8 @@ class CoordinateManager:
                     line_b[0][0] <= line_a[1][0] <= line_b[1][0] or \
                     line_a[0][0] <= line_b[0][0] <= line_a[1][0] or \
                     line_a[0][0] <= line_b[1][0] <= line_a[1][0]:
-                # print("Lines are collinear and overlap")
                 return True
             else:
-                # print("Lines do not intersect")
                 return False
         y_intercept_a = line_a[0][1] - slope_a * line_a[0][0]
 
@@ -64,10 +67,8 @@ class CoordinateManager:
                     line_a[0][0] <= line_b[1][0] <= line_a[1][0] or \
                     line_b[0][0] <= line_a[0][0] <= line_b[1][0] or \
                     line_b[0][0] <= line_a[1][0] <= line_b[1][0]:
-                # print("Lines are collinear and overlap")
                 return True
             else:
-                # print("Lines do not intersect")
                 return False
         y_intercept_b = line_b[0][1] - slope_b * line_b[0][0]
 
@@ -76,14 +77,11 @@ class CoordinateManager:
             # check if lines overlap
             if (max(line_a[0][0], line_a[1][0]) >= min(line_b[0][0], line_b[1][0]) and
                     min(line_a[0][0], line_a[1][0]) <= max(line_b[0][0], line_b[1][0])):
-                # print("Lines are collinear and overlap")
                 return True
             else:
-                # print("Lines are collinear but do not overlap")
                 return False
         # check if lines are parallel
         elif abs(slope_a - slope_b) < 1e-10:
-            # print("Lines are parallel and non-intersecting")
             return False
 
         # calculate x-coordinate of intersection point
@@ -94,8 +92,6 @@ class CoordinateManager:
                 x_intersect > max(line_a[0][0], line_a[1][0]) or
                 x_intersect < min(line_b[0][0], line_b[1][0]) or
                 x_intersect > max(line_b[0][0], line_b[1][0])):
-            # print("Lines do not intersect")
             return False
         else:
-            # print("Lines intersect at ({}, {})".format(x_intersect, slope_a * x_intersect + y_intercept_a))
             return True
