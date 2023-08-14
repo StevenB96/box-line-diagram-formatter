@@ -39,12 +39,11 @@ class Rectangle(Shape):
     @property
     def coordinates(self):
         coordinates = [
-            [self.x, self.y], 
-            [self.x + self.width, self.y], 
-            [self.x + self.width, self.y + self.height], 
-            [self.x, self.y + self.height]
+            (self.x, self.y), 
+            (self.x + self.width, self.y), 
+            (self.x + self.width, self.y + self.height), 
+            (self.x, self.y + self.height)
         ]
-
         return coordinates
 
     def __str__(self):

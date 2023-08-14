@@ -1,6 +1,6 @@
-from shapes.Rectangle import Rectangle
-from shapes.JaggedLine import JaggedLine
-from shapes.StraightLine import StraightLine
+from entities.Rectangle import Rectangle
+from entities.JaggedLine import JaggedLine
+from entities.StraightLine import StraightLine
 
 class EntityFactory:
     DISPLAY_ATTRS = [

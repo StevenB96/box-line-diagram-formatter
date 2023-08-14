@@ -5,24 +5,22 @@ class StraightLine(Connection):
     def __init__(self, entity_dictionary, grid_spacing):
         self.entity_dictionary = entity_dictionary
         self.grid_spacing = grid_spacing
+        self.coordinates = []
         self.entity_type = Helpers.text_to_entity_type('Connection')
         self.type = Helpers.text_to_type('Straight Line')
 
-    @property
-    def coordinates(self):
-        print(self.style)
-        source_point = next((coord for coord in self.entity_dictionary['mxGeometry']['mxPoint'] if coord['@as'] == 'sourcePoint'), None)
-        target_point = next((coord for coord in self.entity_dictionary['mxGeometry']['mxPoint'] if coord['@as'] == 'targetPoint'), None)
-        return [
-            (
-                Helpers.round_to_grid(int(source_point['@x']), self.grid_spacing), 
-                Helpers.round_to_grid(int(source_point['@y']), self.grid_spacing)
-            ),
-            (
-                Helpers.round_to_grid(int(target_point['@x']), self.grid_spacing),
-                Helpers.round_to_grid(int(target_point['@y']), self.grid_spacing)
-            )
-        ]
+    def set_coordinates(self, source_entity, target_entity):
+        # Exit coordinate
+        base_coordinate = source_entity.coordinates[0]
+        exit_x = float(self.style["exitX"])
+        exit_y = float(self.style["exitY"])
+        exit_coordinate = (int(base_coordinate[0] + (exit_x * source_entity.width)), int(base_coordinate[1] + (exit_y * source_entity.height)))
+        # Entry coordinate
+        base_coordinate = target_entity.coordinates[0]
+        entry_x = float(self.style["entryX"])
+        entry_y = float(self.style["entryY"])
+        entry_coordinate = (int(base_coordinate[0] + (entry_x * target_entity.width)), int(base_coordinate[1] + (entry_y * target_entity.height)))
+        self.coordinates = [exit_coordinate, entry_coordinate]
 
     def __str__(self):
         self_attributes = vars(self)

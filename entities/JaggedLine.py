@@ -5,20 +5,23 @@ class JaggedLine(Connection):
     def __init__(self, entity_dictionary, grid_spacing):
         self.entity_dictionary = entity_dictionary
         self.grid_spacing = grid_spacing
+        self.coordinates =  []
         self.entity_type = Helpers.text_to_entity_type('Connection')
         self.type = Helpers.text_to_type('Jagged Line')
 
-    @property
-    def coordinates(self):
-        coordinates = []
-        for coord in self.entity_dictionary['mxGeometry']['Array']['mxPoint']:
-            coordinates.append(
-                (
-                    Helpers.round_to_grid(int(coord['@x']), self.grid_spacing), 
-                    Helpers.round_to_grid(int(coord['@y']), self.grid_spacing)
-                )
-            )
-        return coordinates
+    def set_coordinates(self, source_entity, target_entity):
+        print("Source entity:", source_entity.text)
+        print("Target entity:", target_entity.text)
+        self.coordinates =  []
+        # coordinates = []
+        # for coord in self.entity_dictionary['mxGeometry']['Array']['mxPoint']:
+        #     coordinates.append(
+        #         (
+        #             Helpers.round_to_grid(int(coord['@x']), self.grid_spacing), 
+        #             Helpers.round_to_grid(int(coord['@y']), self.grid_spacing)
+        #         )
+        #     )
+        # return coordinates
 
     def __str__(self):
         self_attributes = vars(self)
