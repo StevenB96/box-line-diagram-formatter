@@ -91,3 +91,20 @@ class Helpers:
                     pass
         # Return the dictionary
         return dict
+    
+    @staticmethod
+    def order_objects_by_attribute(objects, attr, order):
+        """
+        Sort an array of shapes by a dict attribute following a custom order.
+
+        Args:
+            attr (str): The name of the attribute to sort by.
+            order (list): The custom order of the attribute values.
+
+        Returns:
+            The same array of shapes sorted by the attribute following the custom order.
+        """
+        # Convert the order list to a dictionary with values as keys and indexes as values
+        order_dict = {val: i for i, val in enumerate(order)}
+        # Sort the shapes array using the order dictionary to determine the order of attribute values
+        return sorted(objects, key=lambda x: order_dict.get(x[attr], len(order_dict)))
