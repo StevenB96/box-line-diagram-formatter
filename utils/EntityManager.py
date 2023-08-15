@@ -9,16 +9,13 @@ class EntityManager:
         self.entities = []
         self.connections = []
 
-        # Iterate through all `mxCell`s in the root dictionary
         for mx_cell in input_dict:
-            # If a `Shape` instance can be created from the `mxCell`, add it to the `shapes` list
             try:
-                shape = EntityFactory.create_shape(mx_cell, grid_spacing)
-                if (shape.entity_type == Helpers.text_to_entity_type('Shape')):
-                    self.entities.append(EntityFactory.create_shape(mx_cell, grid_spacing))
-                elif (shape.entity_type == Helpers.text_to_entity_type('Connection')):
-                    self.connections.append(EntityFactory.create_shape(mx_cell, grid_spacing))
-            # If creating a `Shape` instance from the `mxCell` fails, skip it and move to the next one
+                entity = EntityFactory.generate_entity(mx_cell, grid_spacing)
+                if (entity.entity_type == Helpers.text_to_entity_type('Shape')):
+                    self.entities.append(EntityFactory.generate_entity(mx_cell, grid_spacing))
+                elif (entity.entity_type == Helpers.text_to_entity_type('Connection')):
+                    self.connections.append(EntityFactory.generate_entity(mx_cell, grid_spacing))
             except Exception as e:
-                print(e)
+                Helpers.debug_print('Cannot create and assign entity:', e, debug_type = 'error')
                 continue

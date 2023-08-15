@@ -12,39 +12,47 @@ class Rectangle(Shape):
     def width(self):
         try:
             return Helpers.round_to_grid(int(self.entity_dictionary['mxGeometry']['@width']), self.grid_spacing)
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define width attribute:', e, debug_type = 'error')
             return None
 
     @property
     def height(self):
         try:
             return Helpers.round_to_grid(int(self.entity_dictionary['mxGeometry']['@height']), self.grid_spacing)
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define height attribute:', e, debug_type = 'error')
             return None
 
     @property
     def x(self):
         try:
             return Helpers.round_to_grid(int(self.entity_dictionary['mxGeometry']['@x']), self.grid_spacing)
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define x attribute:', e, debug_type = 'error')
             return None
     
     @property
     def y(self):
         try:
             return Helpers.round_to_grid(int(self.entity_dictionary['mxGeometry']['@y']), self.grid_spacing)
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define y attribute:', e, debug_type = 'error')
             return None
 
     @property
     def coordinates(self):
-        coordinates = [
-            (self.x, self.y), 
-            (self.x + self.width, self.y), 
-            (self.x + self.width, self.y + self.height), 
-            (self.x, self.y + self.height)
-        ]
-        return coordinates
+        try:
+            coordinates = [
+                (self.x, self.y), 
+                (self.x + self.width, self.y), 
+                (self.x + self.width, self.y + self.height), 
+                (self.x, self.y + self.height)
+            ]
+            return coordinates
+        except Exception as e:
+            Helpers.debug_print('Cannot define coordinates attribute:', e, debug_type = 'error')
+            return None
 
     def __str__(self):
         self_attributes = vars(self)

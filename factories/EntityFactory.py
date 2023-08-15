@@ -19,7 +19,7 @@ class EntityFactory:
     ]
 
     @staticmethod
-    def create_shape(entity_dictionary, grid_spacing):
+    def generate_entity(entity_dictionary, grid_spacing):
         if '@vertex' in entity_dictionary:
             return Rectangle(entity_dictionary, grid_spacing)
         elif '@source' in entity_dictionary and '@target' in entity_dictionary:

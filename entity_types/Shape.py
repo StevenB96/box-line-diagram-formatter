@@ -11,32 +11,39 @@ class Shape:
     def id(self):
         try:
             return self.entity_dictionary['@id']
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define id attribute:', e, debug_type = 'error')
             return None
     
     @property
     def text(self):
         try:
             return self.entity_dictionary['@value']
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define text attribute:', e, debug_type = 'error')
             return None
         
     @property
     def style(self):
         try:
             return Helpers.xml_string_to_dict(self.entity_dictionary['@style'])
-        except:
+        except Exception as e:
+            Helpers.debug_print('Cannot define style attribute:', e, debug_type = 'error')
             return None
 
     @property
     def lines(self):
-        lines = []
-        for i in range(len(self.coordinates)):
-            if i == len(self.coordinates) - 1:
-                lines.append((self.coordinates[i], self.coordinates[0]))
-            else:
-                lines.append((self.coordinates[i], self.coordinates[i+1]))
-        return lines
+        try:
+            lines = []
+            for i in range(len(self.coordinates)):
+                if i == len(self.coordinates) - 1:
+                    lines.append((self.coordinates[i], self.coordinates[0]))
+                else:
+                    lines.append((self.coordinates[i], self.coordinates[i+1]))
+            return lines
+        except Exception as e:
+            Helpers.debug_print('Cannot define lines attribute:', e, debug_type = 'error')
+            return None
     
     @property
     def grid_center(self):

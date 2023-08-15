@@ -1,3 +1,5 @@
+import sys
+
 class Helpers:
     DISPLAY_ATTRS = [
         'id', 
@@ -14,16 +16,30 @@ class Helpers:
         'type'
     ]
 
+    DEBUG_TYPES = {
+        0: None,
+        1: 'message',
+        2: 'error',
+    }
+
+    DEBUG_LEVEL = 2
+
     def __init__(self):
         pass
-    
+
+    @staticmethod
+    def debug_print(*args, debug_type='message', **kwargs):
+        if debug_type == Helpers.DEBUG_TYPES[Helpers.DEBUG_LEVEL]:
+            print(*args, **kwargs)
+        elif debug_type == Helpers.DEBUG_TYPES[Helpers.DEBUG_LEVEL]:
+            print(*args, **kwargs)
+
     @staticmethod
     def round_to_grid(number, grid_spacing):
         return round(number / grid_spacing) * grid_spacing
 
     @staticmethod
     def type_to_text(type):
-        # Helper method to convert the `type` to a human-readable string
         try:
             dict = {}
             dict[0] = 'Jagged Line'
@@ -31,24 +47,22 @@ class Helpers:
             dict[2] = 'Rectangle'
             return dict[type]
         except Exception as e:
-            print(e)
+            Helpers.debug_print('Cannot convert type to text:', e, debug_type = 'error')
             return ''
         
     @staticmethod
     def entity_type_to_text(type):
-        # Helper method to convert the `type` to a human-readable string
         try:
             dict = {}
             dict[0] = 'Shape'
             dict[1] = 'Connection'
             return dict[type]
         except Exception as e:
-            print(e)
+            Helpers.debug_print('Cannot convert entity type to text:', e, debug_type = 'error')
             return ''
         
     @staticmethod
     def text_to_type(type):
-        # Helper method to convert the `type` to a value
         try:
             dict = {}
             dict['Jagged Line'] = 0
@@ -56,19 +70,18 @@ class Helpers:
             dict['Rectangle'] = 2
             return dict[type]
         except Exception as e:
-            print(e)
+            Helpers.debug_print('Cannot convert text to type:', e, debug_type = 'error')
             return None
         
     @staticmethod
     def text_to_entity_type(type):
-        # Helper method to convert the `type` to a value
         try:
             dict = {}
             dict['Shape'] = 0
             dict['Connection'] = 1
             return dict[type]
         except Exception as e:
-            print(e)
+            Helpers.debug_print('Cannot convert text to entity type:', e, debug_type = 'error')
             return None
     
     @staticmethod
@@ -77,10 +90,8 @@ class Helpers:
         dict = {}
         for token in tokens:
             pair = token.split("=")
-            # Assign the key and value to the dictionary
             if (len(pair) == 2):
                 dict[pair[0]] = pair[1]
-        # Convert the values to integers or floats if possible
         for key in dict:
             try:
                 dict[key] = int(dict[key])
@@ -89,22 +100,9 @@ class Helpers:
                     dict[key] = float(dict[key])
                 except ValueError:
                     pass
-        # Return the dictionary
         return dict
     
     @staticmethod
     def order_objects_by_attribute(objects, attr, order):
-        """
-        Sort an array of shapes by a dict attribute following a custom order.
-
-        Args:
-            attr (str): The name of the attribute to sort by.
-            order (list): The custom order of the attribute values.
-
-        Returns:
-            The same array of shapes sorted by the attribute following the custom order.
-        """
-        # Convert the order list to a dictionary with values as keys and indexes as values
         order_dict = {val: i for i, val in enumerate(order)}
-        # Sort the shapes array using the order dictionary to determine the order of attribute values
         return sorted(objects, key=lambda x: order_dict.get(x[attr], len(order_dict)))

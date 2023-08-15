@@ -10,8 +10,8 @@ class JaggedLine(Connection):
         self.type = Helpers.text_to_type('Jagged Line')
 
     def set_coordinates(self, source_entity, target_entity):
-        print("Source entity:", source_entity.text)
-        print("Target entity:", target_entity.text)
+        # Helpers.debug_print("Source entity:", source_entity.text)
+        # Helpers.debug_print("Target entity:", target_entity.text)
         self.coordinates =  []
         # coordinates = []
         # for coord in self.entity_dictionary['mxGeometry']['Array']['mxPoint']:
