@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+from tqdm import tqdm
 import copy
 from utils.Helpers import Helpers
 from utils.NumberedCanvas import NumberedCanvas
@@ -21,7 +22,7 @@ class CoordinateManager:
         self.canvas_size = (Helpers.round_to_grid(total_width, self.grid_spacing), Helpers.round_to_grid(total_width, self.grid_spacing))
 
         # Set first itteration
-        for i in range(self.initial_forest):
+        for i in tqdm(range(self.initial_forest)):
             for entity in self.entities:
                 entity.set_grid_center((self.canvas_size[0] * random.random(), self.canvas_size[1] * random.random()))
             self.update_connections()
