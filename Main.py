@@ -1,7 +1,9 @@
 from utils.FileManager import FileManager
 from utils.EntityManager import EntityManager
 from utils.CoordinateManager import CoordinateManager
+from utils.TestSuite import TestSuite
 
+test_suite = TestSuite()
 file_manager = FileManager()
 file_manager.convert_xml_to_json('Example Input.xml', 'Example Input.json')
 entity_manager = EntityManager()
