@@ -14,13 +14,13 @@ class Model():
         self.entities = entities
         self.connections = connections
         # Weights
-        self.size_weight = 0.01
-        self.average_entity_spacing_weight = -0.001
-        self.intersections_count_weight = 100
+        self.size_weight = 0.1
+        # self.average_entity_spacing_weight = -0.001
+        self.intersections_count_weight = 1
         self.update_connections()
         self.get_intersections_count()
         self.get_size()
-        self.get_average_entity_spacing()
+        # self.get_average_entity_spacing()
         self.get_score()
 
 
@@ -29,22 +29,22 @@ class Model():
         try:
             intersections_count_score = self.intersections_count * self.intersections_count_weight
             size_score = self.size * self.size_weight
-            average_entity_spacing_score = self.average_entity_spacing * self.average_entity_spacing_weight
-            self.score = intersections_count_score + size_score + average_entity_spacing_score
+            # average_entity_spacing_score = self.average_entity_spacing * self.average_entity_spacing_weight
+            self.score = intersections_count_score + size_score
         except Exception as e:
             Helpers.debug_print('Cannot define score attribute:', e, debug_type = 'error')
             return None
     
-    def get_average_entity_spacing(self):
-        try:
-            total_distance = 0
-            for entity_a in self.entities:
-                for entity_b in self.entities:
-                    total_distance += ((entity_a.grid_center[1] - entity_a.grid_center[0]) ** 2 + (entity_b.grid_center[1] - entity_b.grid_center[0]) ** 2) ** 0.5
-            self.average_entity_spacing = total_distance / (len(self.entities) ** 2)
-        except Exception as e:
-            Helpers.debug_print('Cannot define average_entity_spacing attribute:', e, debug_type = 'error')
-            return None
+    # def get_average_entity_spacing(self):
+    #     try:
+    #         total_distance = 0
+    #         for entity_a in self.entities:
+    #             for entity_b in self.entities:
+    #                 total_distance += ((entity_a.grid_center[1] - entity_a.grid_center[0]) ** 2 + (entity_b.grid_center[1] - entity_b.grid_center[0]) ** 2) ** 0.5
+    #         self.average_entity_spacing = total_distance / (len(self.entities) ** 2)
+    #     except Exception as e:
+    #         Helpers.debug_print('Cannot define average_entity_spacing attribute:', e, debug_type = 'error')
+    #         return None
 
     def get_coordinate_range(self):
         try:
@@ -109,18 +109,17 @@ class Model():
         for item_a in combined:
             for item_b in combined:
                 if (item_a.id != item_b.id):
-                    intersections += 1
+                    intersections += self.get_entity_intersections(item_a, item_b)
+        # print(intersections)
         self.intersections_count = intersections
 
     def get_entity_intersections(self, item_a, item_b):
         intersections = 0
         for line_a in item_a.lines:
             for line_b in item_b.lines:
-                lines_are_distinct = not (line_a[0] == line_a[1] or line_b[0] == line_b[1])
-                if lines_are_distinct:
-                    if (self.get_line_intersection_type(line_a, line_b) != 0):
-                        intersections += 1
-                        Helpers.debug_print(Helpers.type_to_text(item_a.type), item_a.id, line_a, "crossed with" , Helpers.type_to_text(item_b.type), item_b.id, line_b)
+                if (self.get_line_intersection_type(line_a, line_b) != 0):
+                    intersections += 1
+                    Helpers.debug_print(Helpers.type_to_text(item_a.type), item_a.id, line_a, "crossed with" , Helpers.type_to_text(item_b.type), item_b.id, line_b)
         return intersections
     
     def get_line_intersection_type(self, line_a, line_b):
@@ -145,7 +144,7 @@ class Model():
         else:
             m2 = None
             b2 = None
-        
+
         # Check if lines are both vertical and intersect
         if m1 is None and m2 is None:
             if x1 == x3:
@@ -156,7 +155,8 @@ class Model():
         # Check if line A is vertical and intersects B
         if m1 is None and m2 is not None:
             x_intersect = x1
-            if ((max(x1,x2)>x_intersect>min(x1,x2)) and (max(x3,x4)>x_intersect>min(x3,x4))):
+            intersect_on_line_b = max(x3, x4) > x_intersect > min(x3, x4)
+            if intersect_on_line_b:
                 return 3
             else:
                 return 0
@@ -164,19 +164,15 @@ class Model():
         # Check if line B is vertical and intersects A
         if m1 is not None and m2 is None:
             x_intersect = x3
-            if ((max(x1,x2)>x_intersect>min(x1,x2)) and (max(x3,x4)>x_intersect>min(x3,x4))):
+            intersect_on_line_a = max(x1, x2) > x_intersect > min(x1, x2)
+            if intersect_on_line_a:
                 return 4
             else:
                 return 0
         
         # Check if lines are colinear
-        if (abs(abs(m1) - abs(m2)) < 1e-9):
-            # abs(m1)
-            if (b1 - b2 < 1e-9):
-                print(y1, y3, y2)
-                print(y1, y3, y2)
-                print(y3, y1, y4)
-                print(y3, y1, y4)
+        if (abs(m1 - m2) < 1e-9):
+            if (abs(b1 - b2) < 1e-9):
                 if ((y1 <= y3 <= y2) or (y1 >= y3 >= y2) or (y3 <= y1 <= y4) or (y3 >= y1 >= y4)):
                     return 5
                 else:
@@ -186,109 +182,13 @@ class Model():
         
         # Check if lines intersect at a point
         x_intersect = (b2 - b1) / (m1 - m2)
-        if ((max(x1,x2)>x_intersect>min(x1,x2)) and (max(x3,x4)>x_intersect>min(x3,x4))):
-            return 5
+        intersect_on_line_a = (abs(m1) < 1e-9) and (max(x1, x2) >= x_intersect >= min(x1, x2)) or ((max(x1, x2) > x_intersect > min(x1, x2)))
+        intersect_on_line_b = (abs(m2) < 1e-9) and (max(x3, x4) >= x_intersect >= min(x3, x4)) or ((max(x3, x4) > x_intersect > min(x3, x4)))
+
+        if (intersect_on_line_a and intersect_on_line_b):
+            return 1
         else:
             return 0
-
-    # def get_line_intersection_type(self, line_a, line_b):
-    #     """
-    #     Lines do not intersect = 0
-    #     Lines intersect = 1
-    #     Both lines are vertical and intersect = 2
-    #     A is vertical and intersect = 3
-    #     B is vertical and intersect = 4
-    #     Lines are collinear and intersect = 5
-    #     """
-
-    #     try:
-    #         slope_a = (line_a[1][1] - line_a[0][1]) / (line_a[1][0] - line_a[0][0])
-    #         y_intercept_a = line_a[0][1] - slope_a * line_a[0][0]
-    #         line_dict_a = {
-    #             "coordinates": line_a,
-    #             "m": slope_a,
-    #             "c": y_intercept_a
-    #         }
-    #     except ZeroDivisionError:
-    #         # Vertical Intersection
-    #         return self.handle_vertical_intersection(line_a, line_b)
-    #     try:
-    #         slope_b = (line_b[1][1] - line_b[0][1]) / (line_b[1][0] - line_b[0][0])
-    #         y_intercept_b = line_b[0][1] - slope_b * line_b[0][0]
-    #         line_dict_b = {
-    #             "coordinates": line_b,
-    #             "m": slope_b,
-    #             "c": y_intercept_b
-    #         }
-    #     except ZeroDivisionError:
-    #         # Vertical Intersection
-    #         return self.handle_vertical_intersection(line_a, line_b)
-
-    #     if (abs(slope_a - slope_b) < 1e-10 and abs(y_intercept_a - y_intercept_b) < 1e-10):
-    #         # Colinear Intersection
-    #         return self.handle_colinear_intersection(line_a, line_b)
-    #     else:
-    #         # Intersection
-    #         return self.handle_intersection(line_dict_a, line_dict_b)
-
-    # def handle_vertical_intersection(self, line_a, line_b):
-    #     a_is_vertical = line_a[0][0] == line_a[1][0]
-    #     b_is_vertical = line_b[0][0] == line_b[1][0]
-    #     if a_is_vertical and b_is_vertical:
-    #         # Check if the vertical lines overlap within each other's ranges
-    #         a_range = sorted([line_a[0][1], line_a[1][1]])
-    #         b_range = sorted([line_b[0][1], line_b[1][1]])
-    #         if line_a[0][0] == line_b[0][0] and a_range[0] <= b_range[1] and b_range[0] <= a_range[1]:
-    #             # The vertical lines overlap within each other's ranges
-    #             return 2
-    #         else:
-    #             # The vertical lines do not overlap within each other's ranges
-    #             return 0
-    #     elif a_is_vertical:
-    #         # Check if line b overlaps with line a within its range
-    #         if line_b[0][0] < line_a[0][0] or line_b[0][0] > line_a[1][0]:
-    #             return 0
-    #         else:
-    #             b_range = sorted([line_b[0][1], line_b[1][1]])
-    #             a_overlap = [line_a[0][1], line_a[1][1]]
-    #             a_overlap.sort()
-    #             if b_range[0] <= a_overlap[1] and b_range[1] >= a_overlap[0]:
-    #                 return 1
-    #             else:
-    #                 return 0
-    #     # Case 3: line b is vertical
-    #     elif b_is_vertical:
-    #         # Check if line a overlaps with line b within its range
-    #         if line_a[0][0] < line_b[0][0] or line_a[0][0] > line_b[1][0]:
-    #             return 0
-    #         else:
-    #             a_range = sorted([line_a[0][1], line_a[1][1]])
-    #             b_overlap = [line_b[0][1], line_b[1][1]]
-    #             b_overlap.sort()
-    #             if a_range[0] <= b_overlap[1] and a_range[1] >= b_overlap[0]:
-    #                 return 1
-    #             else:
-    #                 return 0
-
-    # def handle_colinear_intersection(self, line_a, line_b):
-    #     bx_start_within_a_range = (line_a[0][0] < line_b[0][0] < line_a[1][0]) or (line_a[0][0] > line_b[0][0] > line_a[1][0])
-    #     ax_start_within_b_range = (line_b[0][0] < line_a[0][0] < line_b[1][0]) or (line_b[0][0] > line_a[0][0] > line_b[1][0])
-    #     bx_end_within_a_range = (line_a[0][0] < line_b[1][0] < line_a[1][0]) or (line_a[0][0] > line_b[1][0] > line_a[1][0])
-    #     ax_end_within_b_range = (line_b[0][0] < line_a[1][0] < line_b[1][0]) or (line_b[0][0] > line_a[1][0] > line_b[1][0])
-    #     do_intersect = bx_start_within_a_range or ax_start_within_b_range or bx_end_within_a_range or ax_end_within_b_range
-    #     return 5 if do_intersect else 0
-
-    # def handle_intersection(self, line_dict_a, line_dict_b):
-    #     are_both_horizontal = abs(line_dict_a['m'] - line_dict_b['m']) < 1e-10
-    #     if (are_both_horizontal):
-    #         do_intersect = (line_dict_a['coordinates'][0][1] < line_dict_b['coordinates'][0][1] < line_dict_a['coordinates'][1][1]) or (line_dict_b['coordinates'][0][1] < line_dict_a['coordinates'][0][1] < line_dict_b['coordinates'][1][1])
-    #         return 1 if do_intersect else 0
-    #     else:
-    #         x_intercept = int((line_dict_b['c'] - line_dict_a['c']) / (line_dict_a['m'] - line_dict_b['m']))
-    #         x_intercept_within_a_range = line_dict_a['coordinates'][0][0] < x_intercept < line_dict_a['coordinates'][1][0]
-    #         x_intercept_within_b_range = line_dict_b['coordinates'][0][0] < x_intercept < line_dict_b['coordinates'][1][0]
-    #         do_intersect = x_intercept_within_a_range and x_intercept_within_b_range
-    #         return 1 if do_intersect else 0
 
     def update_connections(self):
         for connection in self.connections:
