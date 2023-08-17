@@ -13,7 +13,7 @@ class CoordinateManager:
         self.current_connections = connections
         self.grid_spacing = grid_spacing
         self.models = []
-        self.initial_forest = 30
+        self.initial_forest = 100
 
     def initialise_models(self):
         model = Model(self.current_entities, self.current_connections)
@@ -41,31 +41,40 @@ class CoordinateManager:
         self.models = sorted(self.models, key=lambda x: x.score)
 
         # print(self.models[0].intersections_count)
-        best_model = self.models[0]
+        best_model_a = self.models[0]
+        for model in self.models[0:10]:
+            results = []
 
-        entities = copy.deepcopy(self.models[0].entities)
+            entities = copy.deepcopy(model.entities)
 
-        # set the initial time to the current time
-        last_improvement_time = time.monotonic()
-        x = 30
-        while True:
-            # check if the time since the last improvement is greater than x seconds
-            if time.monotonic() - last_improvement_time > x:
-                print(f"No improvements made in {x} seconds, stopping the loop")
-                break
+            # set the initial time to the current time
+            last_improvement_time = time.monotonic()
+            x = 10
+            while True:
+                # check if the time since the last improvement is greater than x seconds
+                if time.monotonic() - last_improvement_time > x:
+                    print(f"No improvements made in {x} seconds, stopping the loop")
+                    break
+                
+                entity = random.choice(entities)
+                grid_center = random.choice(random.choice(self.canvas))
+                entity.set_grid_center(grid_center)
+                model = Model(entities, connections)
+                results.append(model)
+                
+                if model.score > max([model.score for model in results]):
+                    print('Model', model.score)
+                    last_improvement_time = time.monotonic()  # update the last improvement time
             
-            entity = random.choice(entities)
-            grid_center = random.choice(random.choice(self.canvas))
-            entity.set_grid_center(grid_center)
-            model = Model(entities, connections)
-            
-            if model.score > best_model.score:
-                # print(model.score)
-                best_model = model
-                last_improvement_time = time.monotonic()  # update the last improvement time
+            results = sorted(results, key=lambda x: - x.score)
+            best_result = Model(copy.deepcopy(results[0].entities), connections)
+            print(best_result.score)
+            if (best_result.score > best_model_a.score):
+                best_model_a = best_result
+            print(best_model_a.score)
 
-        print(best_model.intersections_count)
-        self.display_graph(best_model)
+        print(best_model_a.intersections_count)
+        self.display_graph(best_model_a)
 
     def optimise_coordinates(self):
         # Generate minimal grid

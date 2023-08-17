@@ -10,7 +10,6 @@ class TestSuite:
             for line_b in line_set_b:
                 line_intersection_type = Model.get_line_intersection_type(self.model, line_a, line_b)
                 if line_intersection_type != 0:
-                    print(line_intersection_type)
                     intersection_count += 1
         return intersection_count
 
@@ -51,6 +50,12 @@ class TestSuite:
         line_set_a = [((100, 100), (200, 100)), ((200, 100), (200, 200)), ((200, 200), (100, 200)), ((100, 200), (100, 100))]
         line_set_b = [((100, 150), (150, 50))]
         intersection_count = self.line_set_intersections(line_set_a, line_set_b)
-        assert intersection_count == 1
+        assert intersection_count == 1 # 1 x type 1
+
+        # Two lines at right angles
+        line_set_a = [((100, 100), (200, 100))]
+        line_set_b = [((200, 100), (200, 200))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 0
 
         pass
