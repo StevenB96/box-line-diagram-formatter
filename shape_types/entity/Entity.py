@@ -12,5 +12,5 @@ class Entity(ModelSpaceItem):
         return centroid
     
     def set_grid_center(self, coordinates):
-        self.entity_dictionary['mxGeometry']['@x'] = str(int(coordinates[0] - 0.5 * self.width))
-        self.entity_dictionary['mxGeometry']['@y'] = str(int(coordinates[1] - 0.5 * self.height))
+        self.entity_dictionary['mxGeometry']['@x'] = str(self.round_to_grid(coordinates[0] - 0.5 * self.width))
+        self.entity_dictionary['mxGeometry']['@y'] = str(self.round_to_grid(coordinates[1] - 0.5 * self.height))
