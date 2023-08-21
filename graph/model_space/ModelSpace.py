@@ -11,15 +11,14 @@ class ModelSpace:
         self.entities = []
         self.entity_relationships = []
         self.generate_shapes()
+        # self.entities[0].set_grid_center([400,200])
+        self.update_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
+        
         model = Model(self.connections, self.entities, self.grid_spacing)
-        # res = self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-1')
+        model.get_intersections_count()
         # model.display()
-        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-1'))
-        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-5'))
-        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-6'))
-        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-9'))
 
     def generate_shapes(self):
         for cell in self.root_cell:
@@ -81,6 +80,6 @@ class ModelSpace:
     def update_entity_relationships(self):
         for entity in self.entities:
             entity.set_relationships_list(self.entity_relationships)
-            print(entity.parent_list)
-            print(entity.child_list)
-            print('\n')
+
+    def optimise_model(self):
+        pass
