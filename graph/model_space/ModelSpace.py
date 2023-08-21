@@ -1,5 +1,7 @@
 from shapes.line.Line import Line
 from shapes.rectangle.Rectangle import Rectangle
+from graph.model.Model import Model
+
 
 class ModelSpace:
     def __init__(self, root_cell, grid_spacing):
@@ -7,11 +9,17 @@ class ModelSpace:
         self.grid_spacing = grid_spacing
         self.connections = []
         self.entities = []
+        self.entity_relationships = []
         self.generate_shapes()
-        print(len(self.connections))
-        print(len(self.entities))
-        # for i in self.connections + self.entities:
-        #     print(i, '\n')
+        self.generate_entity_relationships()
+        self.update_entity_relationships()
+        model = Model(self.connections, self.entities, self.grid_spacing)
+        # res = self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-1')
+        # model.display()
+        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-1'))
+        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-5'))
+        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-6'))
+        # print(self.generate_relationships_list('_AMruqflp3BRAEhRA3ei-9'))
 
     def generate_shapes(self):
         for cell in self.root_cell:
@@ -28,18 +36,51 @@ class ModelSpace:
         self.update_shapes()
 
     def update_shapes(self):
+        self.update_connections()
+
+    def update_connections(self):
         for connection in self.connections:
             if (connection.type == 'Line'):
-                # Find the source entity in the entities list
-                source_entity = next((entity for entity in self.entities if entity.id == connection.source), None)
-                if source_entity is None:
-                    print("Cannot find source entity for connection", connection)
-                    continue
-                
-                # Find the target entity in the entities list
-                target_entity = next((entity for entity in self.entities if entity.id == connection.target), None)
-                if target_entity is None:
-                    print("Cannot find target entity for connection", connection)
-                    continue
-                # Set the connections coordinates based on the entity coordinates
+                source_entity = next(
+                    (entity for entity in self.entities if entity.id() == connection.source()), None)
+                target_entity = next(
+                    (entity for entity in self.entities if entity.id() == connection.target()), None)
                 connection.set_coordinates(source_entity, target_entity)
+
+    def generate_entity_relationships(self):
+        entity_relationship_dict = {}
+        for entity in self.entities:
+            entity_id = entity.id()
+            entity_relationship_dict[entity_id] = {'parents': [], 'children': []}
+            for connection in self.connections:
+                source_id = connection.source()
+                target_id = connection.target()
+                if source_id == entity_id:
+                    entity_relationship_dict[entity_id]['children'].append(target_id)
+                if target_id == entity_id:
+                    entity_relationship_dict[entity_id]['parents'].append(source_id)
+        self.set_entity_relationships(entity_relationship_dict)
+
+    def set_entity_relationships(self, entity_relationship_dict):
+        entity_id_set = [entity.id() for entity in self.entities]
+        self.entity_relationships.append(entity_id_set)
+        for entity in self.entities:
+            entity_id = entity.id()
+            row = []
+            for other_entity in self.entities:
+                if other_entity.id() == entity_id:
+                    row.append(0)
+                elif other_entity.id() in entity_relationship_dict[entity_id]['parents']:
+                    row.append(1)
+                elif other_entity.id() in entity_relationship_dict[entity_id]['children']:
+                    row.append(-1)
+                else:
+                    row.append(0)
+            self.entity_relationships.append(row)
+
+    def update_entity_relationships(self):
+        for entity in self.entities:
+            entity.set_relationships_list(self.entity_relationships)
+            print(entity.parent_list)
+            print(entity.child_list)
+            print('\n')
