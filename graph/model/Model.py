@@ -8,6 +8,9 @@ class Model:
         self.entities = entities
         self.grid_spacing = grid_spacing
 
+    def get_score(self):
+        return self.get_size() * 0.01 + self.get_intersections_count()
+        
     def display(self):
         items = self.connections + self.entities
         root = tk.Tk()
@@ -38,8 +41,7 @@ class Model:
                     continue
                 intersection_count += self.get_entity_intersections(
                         combined[i], item_b)
-        print(intersection_count)
-        self.intersections_count = intersection_count
+        return intersection_count
 
     def get_entity_intersections(self, item_a, item_b):
         intersection_count = 0
@@ -47,7 +49,6 @@ class Model:
             for line_b in item_b.line_set():
                 intersection_type = self.get_line_intersection_type(line_a, line_b)
                 if (intersection_type != 0):
-                    print(item_a.id(), item_a.line_set(), item_b.id(), item_b.line_set())
                     intersection_count += 1
         return intersection_count
 
@@ -94,7 +95,6 @@ class Model:
 
         # Check if line A is vertical and intersects B
         if m1 is None and m2 is not None:
-            # print('B')
             x_intersect = x1
             y_intersect = m2 * x_intersect + b2
             # A
@@ -109,7 +109,6 @@ class Model:
 
         # Check if line B is vertical and intersects A
         if m1 is not None and m2 is None:
-            # print('A')
             x_intersect = x3
             y_intersect = m1 * x_intersect + b1
             # B
@@ -132,7 +131,6 @@ class Model:
                     return 0
             else:
                 return 0
-        # print('V')
         # Calculate standard intersection
         x_intersect = (b2 - b1) / (m1 - m2)
         y_intersect = m1 * x_intersect + b1
@@ -156,3 +154,49 @@ class Model:
             return 1
         else:
             return 0
+        
+    def get_coordinate_range(self):
+        # Initialize the minimum and maximum values of x and y
+        min_x, max_x = float('inf'), float('-inf')
+        min_y, max_y = float('inf'), float('-inf')
+
+        # Loop through each item in the combined list
+        for item in self.entities + self.connections:
+            # Check if the item has coordinates and if they are True
+            for x, y in item.coordinate_set():
+                # Update min and max values of x and y
+                min_x, max_x = min(min_x, x), max(max_x, x)
+                min_y, max_y = min(min_y, y), max(max_y, y)
+
+        # Return the x-range and y-range as a tuple
+        return (min_x, max_x), (min_y, max_y)
+
+    def get_width(self):
+        coordinate_range = self.get_coordinate_range()
+        try:
+            return coordinate_range[0][1] - coordinate_range[0][0]
+        except Exception as e:
+            print(e)
+
+    def get_height(self):
+        coordinate_range = self.get_coordinate_range()
+        try:
+            return coordinate_range[1][1] - coordinate_range[1][0]
+        except Exception as e:
+            print(e)
+        
+    def get_size(self):
+        width = self.get_width()
+        height = self.get_height()
+        try:
+            return (width + height) / 2
+        except Exception as e:
+            print(e)
+
+    def __str__(self):
+        self_attributes = vars(self)
+        self_attribute_list = list(self_attributes.items())
+        string_attributes = [f"{value[0]}: {value[1]}" for value in self_attribute_list]
+        property_attributes = [f"{attr_name}(): {getattr(self, attr_name)}" for attr_name in dir(self) if isinstance(getattr(type(self), attr_name, None), property)]
+        string = '\n'.join(string_attributes + property_attributes)
+        return string

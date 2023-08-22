@@ -30,13 +30,21 @@ class Entity(ModelSpaceItem):
         children = set()
         entity_index = entity_relationships[0].index(self.id())
 
-        parents_buffer = [entity_index]
-        children_buffer = [entity_index]
-        while parents_buffer or children_buffer:
-            parents |= set(parent_index for index in parents_buffer for parent_index in get_children_and_parents(index)[0])
-            children |= set(child_index for index in children_buffer for child_index in get_children_and_parents(index)[1])
-            parents_buffer = [index for parent_index in parents_buffer for index in get_children_and_parents(parent_index)[0]]
-            children_buffer = [index for child_index in children_buffer for index in get_children_and_parents(child_index)[1]]
+        parent_buffer = [entity_index]
+        child_buffer = [entity_index]
+        parent_depth = -1
+        child_depth = -1
+        while parent_buffer or child_buffer:
+            if (parent_buffer):
+                parent_depth += 1
+            if (child_buffer):
+                child_depth += 1
+            parents |= set(parent_index for index in parent_buffer for parent_index in get_children_and_parents(index)[0])
+            children |= set(child_index for index in child_buffer for child_index in get_children_and_parents(index)[1])
+            parent_buffer = [index for parent_index in parent_buffer for index in get_children_and_parents(parent_index)[0]]
+            child_buffer = [index for child_index in child_buffer for index in get_children_and_parents(child_index)[1]]
             
         self.parent_list = [entity_relationships[0][i] for i in list(parents)]
         self.child_list = [entity_relationships[0][i] for i in list(children)]
+        self.parent_depth = parent_depth
+        self.child_depth = child_depth
