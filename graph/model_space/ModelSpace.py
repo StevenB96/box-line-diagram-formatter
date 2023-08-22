@@ -11,14 +11,14 @@ class ModelSpace:
         self.entities = []
         self.entity_relationships = []
         self.generate_shapes()
-        # self.entities[0].set_grid_center([400,200])
+        self.entities[0].set_grid_center([400,200])
         self.update_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
         
         model = Model(self.connections, self.entities, self.grid_spacing)
         model.get_intersections_count()
-        # model.display()
+        model.display()
 
     def generate_shapes(self):
         for cell in self.root_cell:

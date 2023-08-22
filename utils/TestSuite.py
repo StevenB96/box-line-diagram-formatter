@@ -7,8 +7,9 @@ class TestSuite:
 
     def line_set_intersections(self, line_set_a, line_set_b):
         intersection_count = 0
-        for line_a in line_set_a:
-            for line_b in line_set_b:
+        for i, line_a in enumerate(line_set_a):
+            for j, line_b in enumerate(line_set_b):
+                print(i, j, line_a, line_b, self.model.get_line_intersection_type(line_a, line_b))
                 if (self.model.get_line_intersection_type(line_a, line_b) != 0):
                     intersection_count += 1
         return intersection_count
@@ -55,6 +56,18 @@ class TestSuite:
         # Two lines at right angles
         line_set_a = [((100, 100), (200, 100))]
         line_set_b = [((200, 100), (200, 200))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 0
+        print('\n# Debug Case A')
+        # Debug Case A
+        line_set_a = [((600, 350), (720, 350)), ((720, 350), (720, 410)), ((720, 410), (600, 410)), ((600, 410), (600, 350))]
+        line_set_b = [((600, 350), (510, 230))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 0
+        print('\n# Debug Case B')
+        # Debug Case B
+        line_set_a = [((450, 170), (570, 170)), ((570, 170), (570, 230)), ((570, 230), (450, 230)), ((450, 230), (450, 170))]
+        line_set_b = [((430, 350), (510, 230))]
         intersection_count = self.line_set_intersections(line_set_a, line_set_b)
         assert intersection_count == 0
         pass

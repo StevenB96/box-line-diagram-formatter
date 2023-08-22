@@ -25,12 +25,15 @@ class ModelSpaceItem:
 
     def line_set(self):
         try:
+            coord_set = self.coordinate_set()
+            if len(coord_set) == 2:
+                return [(coord_set[0], coord_set[1])]
             lines = []
-            for i in range(len(self.coordinate_set())):
-                if i == len(self.coordinate_set()) - 1:
-                    lines.append((self.coordinate_set()[i], self.coordinate_set()[0]))
+            for i in range(len(coord_set)):
+                if i == len(coord_set) - 1:
+                    lines.append((coord_set[i], coord_set[0]))
                 else:
-                    lines.append((self.coordinate_set()[i], self.coordinate_set()[i+1]))
+                    lines.append((coord_set[i], coord_set[i+1]))
             return lines
         except Exception as e:
             print(e)
