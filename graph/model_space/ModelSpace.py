@@ -5,7 +5,8 @@ import random
 from tqdm import tqdm
 import copy
 import time
-import statistics
+import numpy as np
+import math
 
 
 class ModelSpace:
@@ -17,12 +18,15 @@ class ModelSpace:
         self.initial_entities = []
         self.entity_relationships = []
         self.models = []
+        self.grid_gap = 10
+        self.covariance = 1
+        self.double_optimisation_coefficient = 0.25
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
         self.initial_forest_size = 1000 * len(self.initial_entities)
-        self.top_forest_size = 10 * len(self.initial_entities)
-        self.model_optimisation_time = 5 * len(self.initial_entities)        
+        self.top_forest_size = 5 * len(self.initial_entities)
+        self.model_optimisation_time = 5 * len(self.initial_entities)
         self.set_canvas()
         self.generate_initial_forest()
 
@@ -93,7 +97,7 @@ class ModelSpace:
         connections = copy.deepcopy(self.connections)
 
         models = []
-        print('Evaluating initial forest')
+        print('Generating initial forest')
         for i in tqdm(range(self.initial_forest_size)):
             for entity in entities:
                 random_grid_center = random.choice(random.choice(self.canvas))
@@ -104,8 +108,12 @@ class ModelSpace:
             # Create a deep copy of the 'model' object and append the copy to the 'models' list
             models.append(copy.deepcopy(model))
 
-        models.sort(key=lambda x: x.get_penalty())
-        self.models = models
+        sorted_models = []
+        print('Evaluating initial forest')
+        for model in tqdm(models):
+            sorted_models.append((model.get_penalty(), model))
+        sorted_models = [model for penalty, model in sorted_models]
+        self.models = sorted_models
 
     def optimise_model_space(self):
         best_model = self.models[0]
@@ -116,17 +124,45 @@ class ModelSpace:
             entities = copy.deepcopy(model.entities)
             connections = copy.deepcopy(model.connections)
             last_improvement_time = time.monotonic()
+            last_covariance_doubling_time = time.monotonic()
             while True:
-                if time.monotonic() - last_improvement_time > self.model_optimisation_time:
+                improvement_time_difference = time.monotonic() - last_improvement_time
+                if improvement_time_difference > self.model_optimisation_time:
+                    self.covariance = 1
                     break
+                doubling_time_time_difference = time.monotonic() - last_covariance_doubling_time
+                if doubling_time_time_difference > self.model_optimisation_time * self.double_optimisation_coefficient:
+                    self.covariance *= 2
+                    last_covariance_doubling_time = time.monotonic()
                 random_index = random.randrange(len(entities))
                 random_entity = entities[random_index]
-                random_grid_center = random.choice(random.choice(self.canvas))
+                original_grid_center = random_entity.grid_center()
+
+                # Use a multivariate normal distribution
+                x, y = original_grid_center
+                mean = [x // (self.grid_spacing * self.grid_gap), y // (self.grid_spacing * self.grid_gap)]
+                cov = [[self.covariance, 0], [0, self.covariance]]
+
+                # Generate new valid grid center
+                new_pos = np.random.multivariate_normal(mean, cov)
+                new_x, new_y = int(round(new_pos[0])), int(round(new_pos[1]))
+                new_x_is_valid = len(self.canvas[0]) - 1 >= new_x >= 0 and new_x != x
+                new_y_is_valid = len(self.canvas) - 1 >= new_y >= 0 and new_y != y
+                while (not new_x_is_valid or not new_y_is_valid):
+                    new_pos = np.random.multivariate_normal(mean, cov)
+                    new_x, new_y = int(round(new_pos[0])), int(round(new_pos[1]))
+                    new_x_is_valid = len(self.canvas[0]) - 1 >= new_x >= 0 and new_x != x
+                    new_y_is_valid = len(self.canvas) - 1 >= new_y >= 0 and new_y != y
+
+                random_grid_center = self.canvas[new_y][new_x]
                 random_entity.set_grid_center(random_grid_center)
                 self.update_connections(connections, entities)
                 model = Model(connections, entities, self.grid_spacing)
                 if modified_models and model.get_penalty() < min([model.get_penalty() for model in modified_models]):
                     last_improvement_time = time.monotonic()
+                else:
+                    # Undo if change is not an improvement
+                    random_entity.set_grid_center(original_grid_center)
                 modified_models.append(copy.deepcopy(model))
             modified_models = sorted(
                 modified_models, key=lambda x: - x.get_penalty())
@@ -145,20 +181,23 @@ class ModelSpace:
     def set_canvas(self):
         grid_size = self.get_grid_size()
         grid = []
-        for y in range(0, grid_size[1], self.grid_spacing * 10):
+        for y in range(0, grid_size[1], self.grid_spacing * self.grid_gap):
             row = []
-            for x in range(0, grid_size[0], self.grid_spacing * 10):
-                row.append((x + self.grid_spacing * 10,
-                           y + self.grid_spacing * 10))
+            for x in range(0, grid_size[0], self.grid_spacing * self.grid_gap):
+                row.append((x + self.grid_spacing * self.grid_gap,
+                           y + self.grid_spacing * self.grid_gap))
             grid.append(row)
         self.canvas = grid
 
     def get_grid_size(self):
-        entities_by_parent_depth  = sorted(
+        entities_by_parent_depth = sorted(
             self.initial_entities, key=lambda x: - x.parent_depth)
         entity_parent_depth = entities_by_parent_depth[0].parent_depth
-        parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
+        parent_depths = [
+            entity.parent_depth for entity in entities_by_parent_depth]
         max_parent_depth = max(parent_depths)
-        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * 10)
-        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * 10)
+        width = self.round_to_grid(
+            (max_parent_depth + 2) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid(
+            (entity_parent_depth + 2) * self.grid_spacing * self.grid_gap)
         return (width, height)
