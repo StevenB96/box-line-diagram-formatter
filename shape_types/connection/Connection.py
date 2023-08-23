@@ -67,3 +67,10 @@ class Connection(ModelSpaceItem):
         style_string = Helpers.dict_to_xml_string(style)
         self.cell['@style'] = style_string
         self.set_entity_coordinate()
+
+    def length(self):
+        try:
+            coordinate_set = self.coordinate_set()
+            return (abs(coordinate_set[0][0] - coordinate_set[1][0]) * 2 + abs(coordinate_set[0][1] - coordinate_set[1][1]) * 2) * 0.5
+        except Exception as e:
+            print(e)

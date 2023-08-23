@@ -9,8 +9,9 @@ class TestSuite:
         intersection_count = 0
         for i, line_a in enumerate(line_set_a):
             for j, line_b in enumerate(line_set_b):
-                print(i, j, line_a, line_b, self.model.get_line_intersection_type(line_a, line_b))
-                if (self.model.get_line_intersection_type(line_a, line_b) != 0):
+                intersection_type  = self.model.get_line_intersection_type(line_a, line_b)
+                print(i, j, line_a, line_b, intersection_type, '\n')
+                if (intersection_type != 0):
                     intersection_count += 1
         return intersection_count
 
@@ -70,4 +71,10 @@ class TestSuite:
         line_set_b = [((430, 350), (510, 230))]
         intersection_count = self.line_set_intersections(line_set_a, line_set_b)
         assert intersection_count == 0
+        print('\n# Debug Case C')
+        # Debug case C
+        line_set_a = [((140, 170), (260, 170)), ((260, 170), (260, 230)), ((260, 230), (140, 230)), ((140, 230), (140, 170))]
+        line_set_b = [((140, 370), (200, 130))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 2
         pass

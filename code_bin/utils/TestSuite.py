@@ -58,4 +58,9 @@ class TestSuite:
         intersection_count = self.line_set_intersections(line_set_a, line_set_b)
         assert intersection_count == 0
 
+        # Test case A
+        line_set_a = [((140, 170), (260, 170)), ((260, 170), (260, 230)), ((260, 230), (140, 230)), ((140, 230), (140, 170))]
+        line_set_b = [((140, 370), (200, 130))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 1
         pass

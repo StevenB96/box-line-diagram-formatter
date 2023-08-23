@@ -7,29 +7,65 @@ class Model:
         self.connections = connections
         self.entities = entities
         self.grid_spacing = grid_spacing
+        self.font = ('Arial', 10)
+        self.grid_line_colour = '#a3aeba'
 
-    def get_score(self):
-        return self.get_size() * 0.01 + self.get_intersections_count()
-        
+    def get_penalty(self):
+        size_penalty = self.get_size() * 0.001
+        average_connection_length_penalty = self.get_average_connection_length() * \
+            0.001
+        intersections_count_penalty = self.get_intersections_count()
+        return size_penalty + average_connection_length_penalty + intersections_count_penalty
+
     def display(self):
+        grid_size = self.get_grid_size()
+        print(grid_size)
         items = self.connections + self.entities
         root = tk.Tk()
-        canvas = tk.Canvas(root, width=4000, height=4000, bg='white')
+        canvas = tk.Canvas(root, width=grid_size[0] + self.grid_spacing * 10, height=grid_size[1] + self.grid_spacing * 10, bg='white')
         canvas.pack()
+
+        # draw horizontal lines and row labels
+        for y in range(0, canvas.winfo_height(), self.grid_spacing):
+            canvas.create_line(0, y, canvas.winfo_width(), y, fill=self.grid_line_colour, tags='gridline', width=1 if (
+                y % (10 * self.grid_spacing) == 0) == 0 else 2)
+            if (y % (10 * self.grid_spacing) == 0):
+                canvas.create_text(
+                    5,
+                    y+5,
+                    anchor='w',
+                    text=str(y),
+                    font=self.font, tags='rowlabel')
+
+        # draw vertical lines and column labels
+        for x in range(0, canvas.winfo_width(), self.grid_spacing):
+            canvas.create_line(x, 0, x, canvas.winfo_height(), fill=self.grid_line_colour,
+                             tags='gridline', width=1 if (x % (10 * self.grid_spacing) == 0) == 0 else 2)
+            if (x % (10 * self.grid_spacing) == 0):
+                canvas.create_text(
+                    x+5,
+                    5,
+                    anchor='nw',
+                    text=str(x),
+                    font=self.font,
+                    tags='collabel')
+
+        # draw item lines
         for i, item in enumerate(items):
             for j, line in enumerate(item.line_set()):
                 color = f'#{randint(0,255):02x}{randint(0,255):02x}{randint(0,255):02x}'
                 canvas.create_line(line[0][0], line[0][1],
-                    line[1][0], line[1][1],
-                    fill=color,
-                    width=4,
-                    tags=(f'line{i}{j}'))
+                                   line[1][0], line[1][1],
+                                   fill=color,
+                                   width=4,
+                                   tags=(f'line{i}{j}'))
                 canvas.create_text(
                     line[0][0] + 5,
                     line[0][1] + 5,
                     anchor='nw',
-                    text=item.text(),
+                    text=item.id()[-1],
                     tags='collabel')
+
         root.mainloop()
 
     def get_intersections_count(self):
@@ -40,14 +76,15 @@ class Model:
                 if item_a.id() == item_b.id():
                     continue
                 intersection_count += self.get_entity_intersections(
-                        combined[i], item_b)
+                    combined[i], item_b)
         return intersection_count
 
     def get_entity_intersections(self, item_a, item_b):
         intersection_count = 0
         for line_a in item_a.line_set():
             for line_b in item_b.line_set():
-                intersection_type = self.get_line_intersection_type(line_a, line_b)
+                intersection_type = self.get_line_intersection_type(
+                    line_a, line_b)
                 if (intersection_type != 0):
                     intersection_count += 1
         return intersection_count
@@ -61,7 +98,7 @@ class Model:
         x4, y4 = coord_4
 
         if ((x1 == x3 and y1 == y3 and x2 == x4 and y2 == y4) or
-            (x1 == x4 and y1 == y4 and x2 == x3 and y2 == y3)):
+                (x1 == x4 and y1 == y4 and x2 == x3 and y2 == y3)):
             return 6
 
         # Calculate slopes and y-intercepts
@@ -131,6 +168,7 @@ class Model:
                     return 0
             else:
                 return 0
+
         # Calculate standard intersection
         x_intersect = (b2 - b1) / (m1 - m2)
         y_intersect = m1 * x_intersect + b1
@@ -147,14 +185,14 @@ class Model:
         y_intersect_within_a_range = y_minA < y_intersect < y_maxA
         y_intersect_within_b_range = y_minB < y_intersect < y_maxB
         # Check if point of intersection is within both line ranges
-        if (((x_intersect_within_a_range and (m1 == 0) and y_intersect_within_a_range) or
+        if (((x_intersect_within_a_range and (m1 == 0) and abs(y_intersect - y_maxA) < 1e-9) or
             (x_intersect_within_a_range and (m1 != 0) and y_intersect_within_a_range)) and
-            ((x_intersect_within_b_range and (m2 == 0) and y_intersect_within_b_range) or
-            (x_intersect_within_b_range and (m2 != 0) and y_intersect_within_b_range))):
+            ((x_intersect_within_b_range and (m2 == 0) and abs(y_intersect - y_maxB) < 1e-9) or
+                (x_intersect_within_b_range and (m2 != 0) and y_intersect_within_b_range))):
             return 1
         else:
             return 0
-        
+
     def get_coordinate_range(self):
         # Initialize the minimum and maximum values of x and y
         min_x, max_x = float('inf'), float('-inf')
@@ -184,7 +222,7 @@ class Model:
             return coordinate_range[1][1] - coordinate_range[1][0]
         except Exception as e:
             print(e)
-        
+
     def get_size(self):
         width = self.get_width()
         height = self.get_height()
@@ -193,10 +231,34 @@ class Model:
         except Exception as e:
             print(e)
 
+    def get_average_connection_length(self):
+        total_length = 0
+        for connection in self.connections:
+            total_length += connection.length()
+        try:
+            return total_length / len(self.connections)
+        except Exception as e:
+            print(e)
+
+    def round_to_grid(self, number):
+        return round(number / self.grid_spacing) * self.grid_spacing
+
+    def get_grid_size(self):
+        entities_by_parent_depth  = sorted(
+            self.entities, key=lambda x: - x.parent_depth)
+        entity_parent_depth = entities_by_parent_depth[0].parent_depth
+        parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
+        max_parent_depth = max(parent_depths)
+        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * 10)
+        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * 10)
+        return (width, height)
+
     def __str__(self):
         self_attributes = vars(self)
         self_attribute_list = list(self_attributes.items())
-        string_attributes = [f"{value[0]}: {value[1]}" for value in self_attribute_list]
-        property_attributes = [f"{attr_name}(): {getattr(self, attr_name)}" for attr_name in dir(self) if isinstance(getattr(type(self), attr_name, None), property)]
+        string_attributes = [
+            f"{value[0]}: {value[1]}" for value in self_attribute_list]
+        property_attributes = [f"{attr_name}(): {getattr(self, attr_name)}" for attr_name in dir(
+            self) if isinstance(getattr(type(self), attr_name, None), property)]
         string = '\n'.join(string_attributes + property_attributes)
         return string
