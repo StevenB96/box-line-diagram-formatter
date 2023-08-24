@@ -9,6 +9,7 @@ from collections import Counter
 import bisect
 import itertools
 import multiprocessing
+import math
 from functools import partial
 
 
@@ -21,16 +22,16 @@ class ModelSpace:
         self.initial_entities = []
         self.entity_relationships = []
         self.models = []
-        self.grid_gap = 20
+        self.grid_gap = 10
         self.grid_padding = 2
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
         model = Model(self.connections, self.initial_entities, self.grid_spacing)
         model.display()
-        self.initial_forest_size = 1 * len(self.initial_entities)
+        self.initial_forest_size = 5 * len(self.initial_entities)
         self.top_forest_size = 5 * len(self.initial_entities)
-        self.model_optimisation_time = 2 * len(self.initial_entities)
+        self.model_optimisation_time = 5 * len(self.initial_entities)
         self.grid_info = {}
         self.set_canvas()
         self.generate_initial_forest()
@@ -107,15 +108,12 @@ class ModelSpace:
         models = []
         pbar = tqdm(total=self.initial_forest_size, desc='Generating initial forest')
         while len(models) < self.initial_forest_size:  # Continue until the models length is equal to initial_forest_size
-            for entity in entities:
-                random_position = self.generate_random_position(entity)
-                random_grid_center = self.find_free_position(entities, random_position, entity)
-                entity.set_grid_center(random_grid_center)
+            self.mutate_entities(entities)
             self.update_connections(connections, entities)
             model = Model(connections, entities, self.grid_spacing)
 
             # Create a deep copy of the 'model' object and append the copy to the 'models' list
-            if model.get_intersections_count() < 2:
+            if model.get_intersections_count() < len(self.initial_entities) * 0.5:
                 models.append(copy.deepcopy(model))
                 pbar.update(1)  # Increment progress bar if a model is added
 
@@ -127,6 +125,12 @@ class ModelSpace:
             bisect.insort_left(sorted_models, model, key=lambda x: model_penalty)
 
         self.models = sorted_models
+
+    def mutate_entities(self, entities):
+        for entity in entities:
+            random_position = self.generate_random_position(entity)
+            random_grid_center = self.find_free_position(entities, random_position, entity)
+            entity.set_grid_center(random_grid_center)
 
     def optimise_model(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
         entities = model.entities
@@ -181,7 +185,7 @@ class ModelSpace:
         best_model = None
         best_penalty = float('inf')
         results_iter = pool.imap(partial_fn, models)
-        with tqdm(total=len(models), desc='Optimising forest:') as pbar:
+        with tqdm(total=len(models), desc='Optimising forest') as pbar:
             for result in results_iter:
                 if result[1] < best_penalty:
                     best_model, best_penalty = result
@@ -195,7 +199,7 @@ class ModelSpace:
     def generate_random_position(self, entity):
         # Define the mean position and standard deviation
         mean_position = (5, (entity.parent_depth + self.grid_padding / 2))  # for example
-        std_deviation = 1  # for example
+        std_deviation = 0.25  # for example
 
         # Generate a random position until a valid one is found
         while True:

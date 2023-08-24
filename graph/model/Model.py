@@ -10,7 +10,7 @@ class Model:
         self.grid_spacing = grid_spacing
         self.font = ('Arial', 10)
         self.grid_line_colour = '#a3aeba'
-        self.grid_gap = 20
+        self.grid_gap = 10
         self.grid_padding = 2
 
     def get_penalty(self):
