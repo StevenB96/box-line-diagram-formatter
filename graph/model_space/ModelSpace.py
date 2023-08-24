@@ -21,8 +21,8 @@ class ModelSpace:
         self.generate_entity_relationships()
         self.update_entity_relationships()
         self.initial_forest_size = 1000 * len(self.initial_entities)
-        self.top_forest_size = 10 * len(self.initial_entities)
-        self.model_optimisation_time = 5 * len(self.initial_entities)        
+        self.top_forest_size = 3 * len(self.initial_entities)
+        self.model_optimisation_time = 3 * len(self.initial_entities)        
         self.set_canvas()
         self.generate_initial_forest()
 
@@ -93,7 +93,7 @@ class ModelSpace:
         connections = copy.deepcopy(self.connections)
 
         models = []
-        print('Evaluating initial forest')
+        print('Generating initial forest')
         for i in tqdm(range(self.initial_forest_size)):
             for entity in entities:
                 random_grid_center = random.choice(random.choice(self.canvas))
@@ -104,8 +104,12 @@ class ModelSpace:
             # Create a deep copy of the 'model' object and append the copy to the 'models' list
             models.append(copy.deepcopy(model))
 
-        models.sort(key=lambda x: x.get_penalty())
-        self.models = models
+        sorted_models = []
+        print('Evaluating initial forest')
+        for model in tqdm(models):
+            sorted_models.append((model.get_penalty(), model))
+        sorted_models = [model for penalty, model in sorted_models]
+        self.models = sorted_models
 
     def optimise_model_space(self):
         best_model = self.models[0]
