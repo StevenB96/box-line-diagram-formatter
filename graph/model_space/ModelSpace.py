@@ -17,6 +17,7 @@ class ModelSpace:
         self.initial_entities = []
         self.entity_relationships = []
         self.models = []
+        self.grid_gap = 10
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
@@ -149,11 +150,11 @@ class ModelSpace:
     def set_canvas(self):
         grid_size = self.get_grid_size()
         grid = []
-        for y in range(0, grid_size[1], self.grid_spacing * 10):
+        for y in range(0, grid_size[1], self.grid_spacing * self.grid_gap):
             row = []
-            for x in range(0, grid_size[0], self.grid_spacing * 10):
-                row.append((x + self.grid_spacing * 10,
-                           y + self.grid_spacing * 10))
+            for x in range(0, grid_size[0], self.grid_spacing * self.grid_gap):
+                row.append((x + self.grid_spacing * self.grid_gap,
+                           y + self.grid_spacing * self.grid_gap))
             grid.append(row)
         self.canvas = grid
 
@@ -163,6 +164,6 @@ class ModelSpace:
         entity_parent_depth = entities_by_parent_depth[0].parent_depth
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
         max_parent_depth = max(parent_depths)
-        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * 10)
-        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * 10)
+        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * self.grid_gap)
         return (width, height)

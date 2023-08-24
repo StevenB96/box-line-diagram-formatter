@@ -9,6 +9,7 @@ class Model:
         self.grid_spacing = grid_spacing
         self.font = ('Arial', 10)
         self.grid_line_colour = '#a3aeba'
+        self.grid_gap = 10
 
     def get_penalty(self):
         size_penalty = self.get_size() * 0.001
@@ -22,14 +23,14 @@ class Model:
         print(grid_size)
         items = self.connections + self.entities
         root = tk.Tk()
-        canvas = tk.Canvas(root, width=grid_size[0] + self.grid_spacing * 10, height=grid_size[1] + self.grid_spacing * 10, bg='white')
+        canvas = tk.Canvas(root, width=grid_size[0] + self.grid_spacing * self.grid_gap, height=grid_size[1] + self.grid_spacing * self.grid_gap, bg='white')
         canvas.pack()
 
         # draw horizontal lines and row labels
         for y in range(0, canvas.winfo_height(), self.grid_spacing):
             canvas.create_line(0, y, canvas.winfo_width(), y, fill=self.grid_line_colour, tags='gridline', width=1 if (
-                y % (10 * self.grid_spacing) == 0) == 0 else 2)
-            if (y % (10 * self.grid_spacing) == 0):
+                y % (self.grid_gap * self.grid_spacing) == 0) == 0 else 2)
+            if (y % (self.grid_gap * self.grid_spacing) == 0):
                 canvas.create_text(
                     5,
                     y+5,
@@ -40,8 +41,8 @@ class Model:
         # draw vertical lines and column labels
         for x in range(0, canvas.winfo_width(), self.grid_spacing):
             canvas.create_line(x, 0, x, canvas.winfo_height(), fill=self.grid_line_colour,
-                             tags='gridline', width=1 if (x % (10 * self.grid_spacing) == 0) == 0 else 2)
-            if (x % (10 * self.grid_spacing) == 0):
+                             tags='gridline', width=1 if (x % (self.grid_gap * self.grid_spacing) == 0) == 0 else 2)
+            if (x % (self.grid_gap * self.grid_spacing) == 0):
                 canvas.create_text(
                     x+5,
                     5,
@@ -249,8 +250,8 @@ class Model:
         entity_parent_depth = entities_by_parent_depth[0].parent_depth
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
         max_parent_depth = max(parent_depths)
-        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * 10)
-        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * 10)
+        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * self.grid_gap)
         return (width, height)
 
     def __str__(self):
