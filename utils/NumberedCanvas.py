@@ -41,8 +41,8 @@ class NumberedCanvas(tk.Canvas):
 
         # draw item lines
         for i, item in enumerate(self.items):
+            color = f'#{randint(0,255):02x}{randint(0,255):02x}{randint(0,255):02x}'
             for j, line in enumerate(item.line_set()):
-                color = f'#{randint(0,255):02x}{randint(0,255):02x}{randint(0,255):02x}'
                 self.create_line(line[0][0], line[0][1],
                                    line[1][0], line[1][1],
                                    fill=color,

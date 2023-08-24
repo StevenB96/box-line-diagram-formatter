@@ -11,17 +11,18 @@ class Model:
         self.font = ('Arial', 10)
         self.grid_line_colour = '#a3aeba'
         self.grid_gap = 20
+        self.grid_padding = 2
 
     def get_penalty(self):
         size_penalty = self.get_size() * 0.001
         average_connection_length_penalty = self.get_average_connection_length() * \
-            0.01
+            0.1
         intersections_count_penalty = self.get_intersections_count()
-        return size_penalty + average_connection_length_penalty + intersections_count_penalty
+        return average_connection_length_penalty + intersections_count_penalty
 
     def display(self):
         self.set_grid_info()
-        grid_info = self.grid_info        
+        grid_info = self.grid_info    
         root = tk.Tk()
         canvas = NumberedCanvas(root, 
                                 self.grid_spacing,
@@ -244,8 +245,8 @@ class Model:
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
         count_dict = Counter(parent_depths)
         most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[0]
-        width = self.round_to_grid((most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        width = self.round_to_grid((most_common_parent_depth_count + self.grid_padding) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid((max_parent_depth + self.grid_padding) * self.grid_spacing * self.grid_gap)
         grid_info = {}
         grid_info['width'] = width
         grid_info['height'] = height

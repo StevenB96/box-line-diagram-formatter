@@ -6,6 +6,10 @@ from tqdm import tqdm
 import copy
 import time
 from collections import Counter
+import bisect
+import itertools
+import multiprocessing
+from functools import partial
 
 
 class ModelSpace:
@@ -18,11 +22,14 @@ class ModelSpace:
         self.entity_relationships = []
         self.models = []
         self.grid_gap = 20
+        self.grid_padding = 2
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
-        self.initial_forest_size = 50 * len(self.initial_entities)
-        self.top_forest_size = 1 * len(self.initial_entities)
+        model = Model(self.connections, self.initial_entities, self.grid_spacing)
+        model.display()
+        self.initial_forest_size = 1 * len(self.initial_entities)
+        self.top_forest_size = 5 * len(self.initial_entities)
         self.model_optimisation_time = 2 * len(self.initial_entities)
         self.grid_info = {}
         self.set_canvas()
@@ -98,86 +105,97 @@ class ModelSpace:
         connections = copy.deepcopy(self.connections)
 
         models = []
-        for i in tqdm(range(self.initial_forest_size), desc='Generating initial forest'):
+        pbar = tqdm(total=self.initial_forest_size, desc='Generating initial forest')
+        while len(models) < self.initial_forest_size:  # Continue until the models length is equal to initial_forest_size
             for entity in entities:
-                random_grid_center = random.choice(random.choice(self.canvas))
+                random_position = self.generate_random_position(entity)
+                random_grid_center = self.find_free_position(entities, random_position, entity)
                 entity.set_grid_center(random_grid_center)
             self.update_connections(connections, entities)
             model = Model(connections, entities, self.grid_spacing)
 
             # Create a deep copy of the 'model' object and append the copy to the 'models' list
-            models.append(copy.deepcopy(model))
+            if model.get_intersections_count() < 2:
+                models.append(copy.deepcopy(model))
+                pbar.update(1)  # Increment progress bar if a model is added
 
+        pbar.close()
+        
         sorted_models = []
-
         for model in tqdm(models, desc='Evaluating initial forest'):
             model_penalty = model.get_penalty()
-            if not sorted_models:
-                sorted_models.append(model)
-            else:
-                for index, sorted_model in enumerate(sorted_models):
-                    if model_penalty < sorted_model.get_penalty():
-                        sorted_models.insert(index, model)
-                        break
-                    elif index == len(sorted_models) - 1:
-                        sorted_models.append(model)
-                        break
+            bisect.insort_left(sorted_models, model, key=lambda x: model_penalty)
 
         self.models = sorted_models
 
+    def optimise_model(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
+        entities = model.entities
+        connections = model.connections
+
+        # Create a deep copy of the initial model that we will modify in each iteration
+        new_model = copy.deepcopy(model)
+
+        best_model = copy.deepcopy(model)
+        best_penalty = best_model.get_penalty()
+
+        last_improvement_time = time.monotonic()
+        while True:
+            if time.monotonic() - last_improvement_time > model_optimisation_time:
+                break
+
+            random_entity = random.choice(entities)
+            random_position = generate_random_position(random_entity)
+            random_grid_center = find_free_position(entities, random_position, random_entity)
+            random_entity.set_grid_center(random_grid_center)
+
+            connections_for_entity = itertools.filterfalse(
+                lambda c: random_entity.id() not in [c.source(), c.target()], connections)
+
+            for connection in connections_for_entity:
+                update_connection(connection, entities)
+
+            new_model.entities = entities
+            new_model.connections = connections
+            penalty = new_model.get_penalty()
+
+            if penalty < best_penalty:
+                best_model = copy.deepcopy(new_model)
+                best_penalty = penalty
+                last_improvement_time = time.monotonic()
+
+        return best_model, best_penalty
+
     def optimise_model_space(self):
-        best_model = self.models[0]
-        for model in tqdm(self.models[0:self.top_forest_size], desc='Optimising forest'):
-            modified_models = []
-            # Create a deep copy of the 'entities' and 'connections' lists
-            entities = copy.deepcopy(model.entities)
-            connections = copy.deepcopy(model.connections)
-            last_improvement_time = time.monotonic()
-            while True:
-                if time.monotonic() - last_improvement_time > self.model_optimisation_time:
-                    break
+        models = self.models[:int(self.top_forest_size)]  # Get top models
+        n_processes = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(processes=n_processes)
 
-                entities_copy = copy.deepcopy(entities)
-                connections_copy = copy.deepcopy(connections)
+        partial_fn = partial(
+            self.optimise_model,
+            model_optimisation_time=self.model_optimisation_time,
+            generate_random_position=self.generate_random_position,
+            find_free_position=self.find_free_position,
+            update_connection=self.update_connection
+        )
 
-                # Mutate the position of a single enitity
-                random_index = random.randrange(len(entities))
-                random_entity = entities[random_index]
-                random_position = self.generate_random_position(random_entity)
-                random_grid_center = self.find_free_position(
-                    entities, random_position, random_entity)
-                random_entity.set_grid_center(random_grid_center)
+        best_model = None
+        best_penalty = float('inf')
+        results_iter = pool.imap(partial_fn, models)
+        with tqdm(total=len(models), desc='Optimising forest:') as pbar:
+            for result in results_iter:
+                if result[1] < best_penalty:
+                    best_model, best_penalty = result
+                pbar.update()
 
-                # Update related connections
-                connections_for_entity = []
-                for connection in connections:
-                    if connection.source() == random_entity.id() or connection.target() == random_entity.id():
-                        connections_for_entity.append(connection)
-                for connection in connections_for_entity:
-                    self.update_connection(connection, entities)
-
-                model = Model(connections, entities, self.grid_spacing)
-                if modified_models and model.get_penalty() < min([model.get_penalty() for model in modified_models]):
-                    last_improvement_time = time.monotonic()
-                else:
-                    entities = entities_copy
-                    connections = connections_copy
-                modified_models.append(copy.deepcopy(model))
-            modified_models = sorted(
-                modified_models, key=lambda x: - x.get_penalty())
-            best_modification = modified_models[0]
-            if (best_modification.get_penalty() < best_model.get_penalty()):
-                best_model = best_modification
-
-        print(best_model.get_penalty())
+        print(best_penalty)
         print(best_model.get_size())
         print(best_model.get_intersections_count())
         best_model.display()
 
     def generate_random_position(self, entity):
         # Define the mean position and standard deviation
-        mean_position = (5, entity.parent_depth)  # for example
-        std_deviation = 1.0  # for example
+        mean_position = (5, (entity.parent_depth + self.grid_padding / 2))  # for example
+        std_deviation = 1  # for example
 
         # Generate a random position until a valid one is found
         while True:
@@ -233,9 +251,9 @@ class ModelSpace:
         most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[
             0]
         width = self.round_to_grid(
-            (most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
+            (most_common_parent_depth_count + self.grid_padding) * self.grid_spacing * self.grid_gap)
         height = self.round_to_grid(
-            (max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+            (max_parent_depth + self.grid_padding) * self.grid_spacing * self.grid_gap)
         grid_info = {}
         grid_info['width'] = width
         grid_info['height'] = height
