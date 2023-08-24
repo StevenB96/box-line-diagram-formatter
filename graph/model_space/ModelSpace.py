@@ -17,7 +17,7 @@ class ModelSpace:
         self.initial_entities = []
         self.entity_relationships = []
         self.models = []
-        self.grid_gap = 10
+        self.grid_gap = 20
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
@@ -158,8 +158,6 @@ class ModelSpace:
             if (best_modification.get_penalty() < best_model.get_penalty()):
                 best_model = best_modification
 
-        # print(best_model.entities)
-        # print(best_model.connections)
         print(best_model.get_penalty())
         print(best_model.get_size())
         print(best_model.get_intersections_count())

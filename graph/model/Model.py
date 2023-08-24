@@ -9,7 +9,7 @@ class Model:
         self.grid_spacing = grid_spacing
         self.font = ('Arial', 10)
         self.grid_line_colour = '#a3aeba'
-        self.grid_gap = 10
+        self.grid_gap = 20
 
     def get_penalty(self):
         size_penalty = self.get_size() * 0.001
@@ -132,7 +132,6 @@ class Model:
                 x_maxB = max(x3, x4)
                 b_lies_on_a = (x_minA < x3 < x_maxA) or (x_minA < x4 < x_maxA)
                 a_lies_on_b = (x_minB < x1 < x_maxB) or (x_minB < x2 < x_maxB)
-                # print('# Check if lines are colinear', b_lies_on_a, a_lies_on_b)
                 if (b_lies_on_a or a_lies_on_b):
                     return 5
                 else:
