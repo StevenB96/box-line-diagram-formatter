@@ -21,7 +21,7 @@ class ModelSpace:
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
-        self.initial_forest_size = 10 * len(self.initial_entities)
+        self.initial_forest_size = 50 * len(self.initial_entities)
         self.top_forest_size = 1 * len(self.initial_entities)
         self.model_optimisation_time = 2 * len(self.initial_entities)
         self.grid_info = {}
@@ -42,14 +42,17 @@ class ModelSpace:
                 print(e)
         self.update_connections(self.connections, self.initial_entities)
 
+    def update_connection(self, connection, entities):
+        if (connection.type == 'Line'):
+            source_entity = next(
+                (entity for entity in entities if entity.id() == connection.source()), None)
+            target_entity = next(
+                (entity for entity in entities if entity.id() == connection.target()), None)
+            connection.set_coordinates(source_entity, target_entity)
+
     def update_connections(self, connections, entities):
         for connection in connections:
-            if (connection.type == 'Line'):
-                source_entity = next(
-                    (entity for entity in entities if entity.id() == connection.source()), None)
-                target_entity = next(
-                    (entity for entity in entities if entity.id() == connection.target()), None)
-                connection.set_coordinates(source_entity, target_entity)
+            self.update_connection(connection, entities)
 
     def generate_entity_relationships(self):
         entity_relationship_dict = {}
@@ -135,6 +138,7 @@ class ModelSpace:
                     break
 
                 entities_copy = copy.deepcopy(entities)
+                connections_copy = copy.deepcopy(connections)
 
                 # Mutate the position of a single enitity
                 random_index = random.randrange(len(entities))
@@ -143,14 +147,21 @@ class ModelSpace:
                 random_grid_center = self.find_free_position(
                     entities, random_position, random_entity)
                 random_entity.set_grid_center(random_grid_center)
-                self.update_connections(connections, entities)
+
+                # Update related connections
+                connections_for_entity = []
+                for connection in connections:
+                    if connection.source() == random_entity.id() or connection.target() == random_entity.id():
+                        connections_for_entity.append(connection)
+                for connection in connections_for_entity:
+                    self.update_connection(connection, entities)
 
                 model = Model(connections, entities, self.grid_spacing)
                 if modified_models and model.get_penalty() < min([model.get_penalty() for model in modified_models]):
                     last_improvement_time = time.monotonic()
                 else:
                     entities = entities_copy
-                    self.update_connections(connections, entities)
+                    connections = connections_copy
                 modified_models.append(copy.deepcopy(model))
             modified_models = sorted(
                 modified_models, key=lambda x: - x.get_penalty())

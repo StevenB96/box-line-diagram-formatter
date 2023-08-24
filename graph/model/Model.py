@@ -1,4 +1,5 @@
 import tkinter as tk
+import threading
 from collections import Counter
 from utils.NumberedCanvas import NumberedCanvas
 
@@ -32,26 +33,49 @@ class Model:
         canvas.pack()
         root.mainloop()
 
-    def get_intersections_count(self):
-        intersection_count = 0
-        combined = [item for item in self.entities + self.connections]
-        for i, item_a in enumerate(combined):
-            for j, item_b in enumerate(combined[i+1:]):
-                if item_a.id() == item_b.id():
+    def process_entities(self, entities, start_idx, end_idx, intersection_counts):
+        for i in range(start_idx, end_idx):
+            for j in range(i+1, len(entities)):
+                if entities[i].id() == entities[j].id():
                     continue
-                intersection_count += self.get_entity_intersections(
-                    combined[i], item_b)
-        return intersection_count
+                intersection_counts[i] += self.get_entity_intersections(
+                    entities[i], entities[j])
+
+    def get_intersections_count(self, num_threads = 8):
+        items = self.entities + self.connections
+        intersection_counts = [0] * len(items)
+        thread_chunk_size = len(items) // num_threads
+
+        # create and start worker threads
+        threads = []
+        for i in range(num_threads):
+            start_idx = i * thread_chunk_size
+            end_idx = start_idx + thread_chunk_size
+            if i == num_threads - 1:
+                end_idx = len(items)
+            thread = threading.Thread(target=self.process_entities, args=(items, start_idx, end_idx, intersection_counts))
+            thread.start()
+            threads.append(thread)
+
+        # wait for worker threads to finish
+        for thread in threads:
+            thread.join()
+
+        # sum up intersection counts from each thread's results
+        return sum(intersection_counts)
 
     def get_entity_intersections(self, item_a, item_b):
         intersection_count = 0
-        for i, line_a in enumerate(item_a.line_set()):
-            for j, line_b in enumerate(item_b.line_set()):
-                if j >= i:  # Only compare once
-                    intersection_type = self.get_line_intersection_type(
-                        line_a, line_b)
-                    if intersection_type != 0:
-                        intersection_count += 1
+        compared_lines = set() # to keep track of compared lines
+        for line_a in item_a.line_set():
+            for line_b in item_b.line_set():
+                if (line_a, line_b) in compared_lines or (line_b, line_a) in compared_lines:
+                    continue # if lines already compared, skip
+                intersection_type = self.get_line_intersection_type(
+                    line_a, line_b)
+                if intersection_type != 0:
+                    intersection_count += 1
+                compared_lines.add((line_a, line_b)) # add compared lines to set
         return intersection_count
 
     def get_line_intersection_type(self, line_a, line_b):
