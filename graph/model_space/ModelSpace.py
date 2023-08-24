@@ -21,11 +21,11 @@ class ModelSpace:
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
-        self.initial_forest_size = 100 * len(self.initial_entities)
+        self.initial_forest_size = 10 * len(self.initial_entities)
         self.top_forest_size = 1 * len(self.initial_entities)
-        self.model_optimisation_time = 1 * len(self.initial_entities)        
-        self.set_canvas()
+        self.model_optimisation_time = 2 * len(self.initial_entities)
         self.grid_info = {}
+        self.set_canvas()
         self.generate_initial_forest()
 
     def generate_shapes(self):
@@ -119,7 +119,7 @@ class ModelSpace:
                     elif index == len(sorted_models) - 1:
                         sorted_models.append(model)
                         break
-        
+
         self.models = sorted_models
 
     def optimise_model_space(self):
@@ -133,14 +133,24 @@ class ModelSpace:
             while True:
                 if time.monotonic() - last_improvement_time > self.model_optimisation_time:
                     break
+
+                entities_copy = copy.deepcopy(entities)
+
+                # Mutate the position of a single enitity
                 random_index = random.randrange(len(entities))
                 random_entity = entities[random_index]
-                random_grid_center = random.choice(random.choice(self.canvas))
+                random_position = self.generate_random_position(random_entity)
+                random_grid_center = self.find_free_position(
+                    entities, random_position, random_entity)
                 random_entity.set_grid_center(random_grid_center)
                 self.update_connections(connections, entities)
+
                 model = Model(connections, entities, self.grid_spacing)
                 if modified_models and model.get_penalty() < min([model.get_penalty() for model in modified_models]):
                     last_improvement_time = time.monotonic()
+                else:
+                    entities = entities_copy
+                    self.update_connections(connections, entities)
                 modified_models.append(copy.deepcopy(model))
             modified_models = sorted(
                 modified_models, key=lambda x: - x.get_penalty())
@@ -148,10 +158,46 @@ class ModelSpace:
             if (best_modification.get_penalty() < best_model.get_penalty()):
                 best_model = best_modification
 
+        # print(best_model.entities)
+        # print(best_model.connections)
         print(best_model.get_penalty())
         print(best_model.get_size())
         print(best_model.get_intersections_count())
         best_model.display()
+
+    def generate_random_position(self, entity):
+        # Define the mean position and standard deviation
+        mean_position = (5, entity.parent_depth)  # for example
+        std_deviation = 1.0  # for example
+
+        # Generate a random position until a valid one is found
+        while True:
+            # Generate random position based on normal distribution
+            x_pos = random.randint(0, len(self.canvas[0]) - 1)
+            y_pos = int(random.normalvariate(mean_position[1], std_deviation))
+            
+            # Check if the position is within the bounds of the matrix
+            if 0 <= x_pos < len(self.canvas) and 0 <= y_pos < len(self.canvas[0]):
+                # Found a valid position
+                random_position = self.canvas[y_pos][x_pos]
+                break
+
+        return random_position
+    
+    def find_free_position(self, entities, position, entity):
+        """Find a free position for an entity"""
+        while position in [entity.grid_center for entity in entities]:
+            # Move all entities currently occupying this position
+            taken_entities = [
+                entity for entity in entities if entity.grid_center() == position]
+            for taken_entity in taken_entities:
+                random_position = self.generate_random_position(taken_entity)
+                new_position = self.find_free_position(
+                    entities, random_position)
+                taken_entity.set_grid_center(new_position)
+            random_position = self.generate_random_position(entity)
+            position = random_position
+        return position
 
     def round_to_grid(self, number):
         return round(number / self.grid_spacing) * self.grid_spacing
@@ -169,14 +215,18 @@ class ModelSpace:
         self.canvas = grid
 
     def set_grid_info(self):
-        entities_by_parent_depth  = sorted(
+        entities_by_parent_depth = sorted(
             self.initial_entities, key=lambda x: - x.parent_depth)
         max_parent_depth = entities_by_parent_depth[0].parent_depth
-        parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
+        parent_depths = [
+            entity.parent_depth for entity in entities_by_parent_depth]
         count_dict = Counter(parent_depths)
-        most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[0]
-        width = self.round_to_grid((most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[
+            0]
+        width = self.round_to_grid(
+            (most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid(
+            (max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
         grid_info = {}
         grid_info['width'] = width
         grid_info['height'] = height

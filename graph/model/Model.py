@@ -14,7 +14,7 @@ class Model:
     def get_penalty(self):
         size_penalty = self.get_size() * 0.001
         average_connection_length_penalty = self.get_average_connection_length() * \
-            0.001
+            0.01
         intersections_count_penalty = self.get_intersections_count()
         return size_penalty + average_connection_length_penalty + intersections_count_penalty
 
@@ -45,12 +45,13 @@ class Model:
 
     def get_entity_intersections(self, item_a, item_b):
         intersection_count = 0
-        for line_a in item_a.line_set():
-            for line_b in item_b.line_set():
-                intersection_type = self.get_line_intersection_type(
-                    line_a, line_b)
-                if (intersection_type != 0):
-                    intersection_count += 1
+        for i, line_a in enumerate(item_a.line_set()):
+            for j, line_b in enumerate(item_b.line_set()):
+                if j >= i:  # Only compare once
+                    intersection_type = self.get_line_intersection_type(
+                        line_a, line_b)
+                    if intersection_type != 0:
+                        intersection_count += 1
         return intersection_count
 
     def get_line_intersection_type(self, line_a, line_b):
@@ -125,8 +126,14 @@ class Model:
         # Check if lines are colinear
         if (abs(m1 - m2) < 1e-9):
             if (abs(b1 - b2) < 1e-9):
-                if ((min(x1, x2) < x3 < max(x1, x2)) or (min(x1, x2) < x4 < max(x1, x2)) or
-                        (min(x3, x4) < x1 < max(x3, x4)) or (min(x3, x4) < x2 < max(x3, x4))):
+                x_minA = min(x1, x2)
+                x_maxA = max(x1, x2)
+                x_minB = min(x3, x4)
+                x_maxB = max(x3, x4)
+                b_lies_on_a = (x_minA < x3 < x_maxA) or (x_minA < x4 < x_maxA)
+                a_lies_on_b = (x_minB < x1 < x_maxB) or (x_minB < x2 < x_maxB)
+                # print('# Check if lines are colinear', b_lies_on_a, a_lies_on_b)
+                if (b_lies_on_a or a_lies_on_b):
                     return 5
                 else:
                     return 0

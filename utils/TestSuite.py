@@ -2,7 +2,7 @@ from graph.model.Model import Model
 
 class TestSuite:
     def __init__(self):
-        if (False):
+        if (True):
             self.test_get_entity_intersections()
 
     def line_set_intersections(self, line_set_a, line_set_b):
@@ -77,4 +77,10 @@ class TestSuite:
         line_set_b = [((140, 370), (200, 130))]
         intersection_count = self.line_set_intersections(line_set_a, line_set_b)
         assert intersection_count == 2
+        print('\n# Debug Case D')
+        # Debug case D
+        line_set_a = [((140, 170), (260, 170)), ((260, 170), (260, 230)), ((260, 230), (140, 230)), ((140, 230), (140, 170))]
+        line_set_b = [((80, 230), (200, 230))]
+        intersection_count = self.line_set_intersections(line_set_a, line_set_b)
+        assert intersection_count == 1
         pass
