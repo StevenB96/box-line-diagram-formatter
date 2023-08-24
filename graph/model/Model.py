@@ -1,6 +1,6 @@
 import tkinter as tk
-from random import randint
-
+from collections import Counter
+from utils.NumberedCanvas import NumberedCanvas
 
 class Model:
     def __init__(self, connections, entities, grid_spacing):
@@ -19,54 +19,17 @@ class Model:
         return size_penalty + average_connection_length_penalty + intersections_count_penalty
 
     def display(self):
-        grid_size = self.get_grid_size()
-        print(grid_size)
-        items = self.connections + self.entities
+        self.set_grid_info()
+        grid_info = self.grid_info        
         root = tk.Tk()
-        canvas = tk.Canvas(root, width=grid_size[0] + self.grid_spacing * self.grid_gap, height=grid_size[1] + self.grid_spacing * self.grid_gap, bg='white')
+        canvas = NumberedCanvas(root, 
+                                self.grid_spacing,
+                                self.entities + self.connections,                            
+                                width=grid_info['width'] + self.grid_spacing * self.grid_gap, 
+                                height=grid_info['height'] + self.grid_spacing * self.grid_gap,
+                                bg='white', 
+                                highlightthickness=0)
         canvas.pack()
-
-        # draw horizontal lines and row labels
-        for y in range(0, canvas.winfo_height(), self.grid_spacing):
-            canvas.create_line(0, y, canvas.winfo_width(), y, fill=self.grid_line_colour, tags='gridline', width=1 if (
-                y % (self.grid_gap * self.grid_spacing) == 0) == 0 else 2)
-            if (y % (self.grid_gap * self.grid_spacing) == 0):
-                canvas.create_text(
-                    5,
-                    y+5,
-                    anchor='w',
-                    text=str(y),
-                    font=self.font, tags='rowlabel')
-
-        # draw vertical lines and column labels
-        for x in range(0, canvas.winfo_width(), self.grid_spacing):
-            canvas.create_line(x, 0, x, canvas.winfo_height(), fill=self.grid_line_colour,
-                             tags='gridline', width=1 if (x % (self.grid_gap * self.grid_spacing) == 0) == 0 else 2)
-            if (x % (self.grid_gap * self.grid_spacing) == 0):
-                canvas.create_text(
-                    x+5,
-                    5,
-                    anchor='nw',
-                    text=str(x),
-                    font=self.font,
-                    tags='collabel')
-
-        # draw item lines
-        for i, item in enumerate(items):
-            for j, line in enumerate(item.line_set()):
-                color = f'#{randint(0,255):02x}{randint(0,255):02x}{randint(0,255):02x}'
-                canvas.create_line(line[0][0], line[0][1],
-                                   line[1][0], line[1][1],
-                                   fill=color,
-                                   width=4,
-                                   tags=(f'line{i}{j}'))
-                canvas.create_text(
-                    line[0][0] + 5,
-                    line[0][1] + 5,
-                    anchor='nw',
-                    text=item.id()[-1],
-                    tags='collabel')
-
         root.mainloop()
 
     def get_intersections_count(self):
@@ -244,15 +207,21 @@ class Model:
     def round_to_grid(self, number):
         return round(number / self.grid_spacing) * self.grid_spacing
 
-    def get_grid_size(self):
+    def set_grid_info(self):
         entities_by_parent_depth  = sorted(
             self.entities, key=lambda x: - x.parent_depth)
-        entity_parent_depth = entities_by_parent_depth[0].parent_depth
+        max_parent_depth = entities_by_parent_depth[0].parent_depth
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
-        max_parent_depth = max(parent_depths)
-        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * self.grid_gap)
-        return (width, height)
+        count_dict = Counter(parent_depths)
+        most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[0]
+        width = self.round_to_grid((most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        grid_info = {}
+        grid_info['width'] = width
+        grid_info['height'] = height
+        grid_info['most_common_parent_depth_count'] = most_common_parent_depth_count
+        grid_info['max_parent_depth'] = max_parent_depth
+        self.grid_info = grid_info
 
     def __str__(self):
         self_attributes = vars(self)

@@ -5,7 +5,7 @@ import random
 from tqdm import tqdm
 import copy
 import time
-import statistics
+from collections import Counter
 
 
 class ModelSpace:
@@ -21,10 +21,11 @@ class ModelSpace:
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
-        self.initial_forest_size = 1000 * len(self.initial_entities)
-        self.top_forest_size = 3 * len(self.initial_entities)
-        self.model_optimisation_time = 3 * len(self.initial_entities)        
+        self.initial_forest_size = 100 * len(self.initial_entities)
+        self.top_forest_size = 1 * len(self.initial_entities)
+        self.model_optimisation_time = 1 * len(self.initial_entities)        
         self.set_canvas()
+        self.grid_info = {}
         self.generate_initial_forest()
 
     def generate_shapes(self):
@@ -94,8 +95,7 @@ class ModelSpace:
         connections = copy.deepcopy(self.connections)
 
         models = []
-        print('Generating initial forest')
-        for i in tqdm(range(self.initial_forest_size)):
+        for i in tqdm(range(self.initial_forest_size), desc='Generating initial forest'):
             for entity in entities:
                 random_grid_center = random.choice(random.choice(self.canvas))
                 entity.set_grid_center(random_grid_center)
@@ -106,16 +106,25 @@ class ModelSpace:
             models.append(copy.deepcopy(model))
 
         sorted_models = []
-        print('Evaluating initial forest')
-        for model in tqdm(models):
-            sorted_models.append((model.get_penalty(), model))
-        sorted_models = [model for penalty, model in sorted_models]
+
+        for model in tqdm(models, desc='Evaluating initial forest'):
+            model_penalty = model.get_penalty()
+            if not sorted_models:
+                sorted_models.append(model)
+            else:
+                for index, sorted_model in enumerate(sorted_models):
+                    if model_penalty < sorted_model.get_penalty():
+                        sorted_models.insert(index, model)
+                        break
+                    elif index == len(sorted_models) - 1:
+                        sorted_models.append(model)
+                        break
+        
         self.models = sorted_models
 
     def optimise_model_space(self):
         best_model = self.models[0]
-        print('Optimising forest')
-        for model in tqdm(self.models[0:self.top_forest_size]):
+        for model in tqdm(self.models[0:self.top_forest_size], desc='Optimising forest'):
             modified_models = []
             # Create a deep copy of the 'entities' and 'connections' lists
             entities = copy.deepcopy(model.entities)
@@ -148,22 +157,29 @@ class ModelSpace:
         return round(number / self.grid_spacing) * self.grid_spacing
 
     def set_canvas(self):
-        grid_size = self.get_grid_size()
+        self.set_grid_info()
+        grid_info = self.grid_info
         grid = []
-        for y in range(0, grid_size[1], self.grid_spacing * self.grid_gap):
+        for y in range(0, grid_info['height'], self.grid_spacing * self.grid_gap):
             row = []
-            for x in range(0, grid_size[0], self.grid_spacing * self.grid_gap):
+            for x in range(0, grid_info['width'], self.grid_spacing * self.grid_gap):
                 row.append((x + self.grid_spacing * self.grid_gap,
                            y + self.grid_spacing * self.grid_gap))
             grid.append(row)
         self.canvas = grid
 
-    def get_grid_size(self):
+    def set_grid_info(self):
         entities_by_parent_depth  = sorted(
             self.initial_entities, key=lambda x: - x.parent_depth)
-        entity_parent_depth = entities_by_parent_depth[0].parent_depth
+        max_parent_depth = entities_by_parent_depth[0].parent_depth
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
-        max_parent_depth = max(parent_depths)
-        width = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid((entity_parent_depth + 1) * self.grid_spacing * self.grid_gap)
-        return (width, height)
+        count_dict = Counter(parent_depths)
+        most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[0]
+        width = self.round_to_grid((most_common_parent_depth_count + 1) * self.grid_spacing * self.grid_gap)
+        height = self.round_to_grid((max_parent_depth + 1) * self.grid_spacing * self.grid_gap)
+        grid_info = {}
+        grid_info['width'] = width
+        grid_info['height'] = height
+        grid_info['most_common_parent_depth_count'] = most_common_parent_depth_count
+        grid_info['max_parent_depth'] = max_parent_depth
+        self.grid_info = grid_info
