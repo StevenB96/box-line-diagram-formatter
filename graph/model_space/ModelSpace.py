@@ -30,8 +30,8 @@ class ModelSpace:
         self.update_entity_relationships()
         model = Model(self.connections, self.initial_entities, self.grid_unit)
         model.display()
-        self.initial_forest_size = 1 * len(self.initial_entities)
-        self.top_forest_size = 5 * len(self.initial_entities)
+        self.initial_forest_size = 10000 * len(self.initial_entities)
+        self.top_forest_size = 10 * len(self.initial_entities)
         self.model_optimisation_time = 5 * len(self.initial_entities)
         self.grid_info = {}
         self.set_canvas()
@@ -101,55 +101,53 @@ class ModelSpace:
         for entity in self.initial_entities:
             entity.set_relationships_list(self.entity_relationships)
 
-    def generate_initial_forest(self):
-        # Create a deep copy of the 'entities' and 'connections' lists
+    def generate_model(self, i):
         entities = copy.deepcopy(self.initial_entities)
         connections = copy.deepcopy(self.connections)
 
-        models = []
-        pbar = tqdm(total=self.initial_forest_size, desc='Generating initial forest')
-        while len(models) < self.initial_forest_size:  # Continue until the models length is equal to initial_forest_size
-            for entity in entities:
-                random_position = self.generate_random_position(entity)
-                random_grid_center = self.find_free_position(entities, random_position, entity)
-                entity.set_grid_center(random_grid_center)
-            self.update_connections(connections, entities)
-            model = Model(connections, entities, self.grid_unit)
+        for entity in entities:
+            random_position = self.generate_random_position(entity)
+            random_grid_center = self.find_free_position(entities, random_position, entity)
+            entity.set_grid_center(random_grid_center)
 
-            # Create a deep copy of the 'model' object and append the copy to the 'models' list
-            if model.get_intersections_count() < len(self.initial_entities) * 0.5:
-                models.append(copy.deepcopy(model))
-                pbar.update(1)  # Increment progress bar if a model is added
-
-        pbar.close()
+        self.update_connections(connections, entities)
+        model = Model(connections, entities, self.grid_unit)
+        model_penalty = model.get_penalty()
+        return (model, model_penalty)
         
-        sorted_models = []
-        for model in tqdm(models, desc='Evaluating initial forest'):
-            model_penalty = model.get_penalty()
-            bisect.insort_left(sorted_models, model, key=lambda x: model_penalty)
+    def generate_initial_forest(self):
+        # Define a multiprocessing pool with the number of CPUs available
+        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+
+        try:
+            # Use the tqdm wrapper around the multiprocessing pool's map function
+            models = list(tqdm(pool.imap(self.generate_model, range(self.initial_forest_size)), total=self.initial_forest_size, desc='Generating forest'))
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.join()
+            raise
+
+        # Close the multiprocessing pool to release resources
+        pool.close()
+
+        sorted_models = [x[0] for x in tqdm(sorted(models, key=lambda x: x[1]), total=len(models), desc='Sorting forest')]
 
         self.models = sorted_models
 
     def optimise_model_space_worker(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
         entities = model.entities
         connections = model.connections
-
-        # Create a deep copy of the initial model that we will modify in each iteration
         new_model = copy.deepcopy(model)
-
         best_model = copy.deepcopy(model)
         best_penalty = best_model.get_penalty()
-
         last_improvement_time = time.monotonic()
         while True:
             if time.monotonic() - last_improvement_time > model_optimisation_time:
                 break
-
             random_entity = random.choice(entities)
             random_position = generate_random_position(random_entity)
             random_grid_center = find_free_position(entities, random_position, random_entity)
             random_entity.set_grid_center(random_grid_center)
-
             connections_for_entity = itertools.filterfalse(
                 lambda c: random_entity.id() not in [c.source(), c.target()], connections)
 
