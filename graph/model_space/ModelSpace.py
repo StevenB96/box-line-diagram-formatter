@@ -130,7 +130,7 @@ class ModelSpace:
 
         self.models = sorted_models
 
-    def optimise_model(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
+    def optimise_model_space_worker(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
         entities = model.entities
         connections = model.connections
 
@@ -173,7 +173,7 @@ class ModelSpace:
         pool = multiprocessing.Pool(processes=n_processes)
 
         partial_fn = partial(
-            self.optimise_model,
+            self.optimise_model_space_worker,
             model_optimisation_time=self.model_optimisation_time,
             generate_random_position=self.generate_random_position,
             find_free_position=self.find_free_position,
