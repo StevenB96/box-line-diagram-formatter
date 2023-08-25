@@ -24,15 +24,15 @@ class ModelSpace:
         self.models = []
         self.grid_gap = grid_unit * 10
         self.grid_multiplier_x = 2
-        self.grid_multiplier_y = 1.5
+        self.grid_multiplier_y = 3
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
         model = Model(self.connections, self.initial_entities, self.grid_unit)
         model.display()
         self.initial_forest_size = 10000 * len(self.initial_entities)
-        self.top_forest_size = 10 * len(self.initial_entities)
-        self.model_optimisation_time = 5 * len(self.initial_entities)
+        self.top_forest_size = 2 * len(self.initial_entities)
+        self.model_optimisation_time = 2 * len(self.initial_entities)
         self.grid_info = {}
         self.set_canvas()
         self.generate_initial_forest()
@@ -107,21 +107,24 @@ class ModelSpace:
 
         for entity in entities:
             random_position = self.generate_random_position(entity)
-            random_grid_center = self.find_free_position(entities, random_position, entity)
+            random_grid_center = self.find_free_position(
+                entities, random_position, entity)
             entity.set_grid_center(random_grid_center)
 
         self.update_connections(connections, entities)
         model = Model(connections, entities, self.grid_unit)
         model_penalty = model.get_penalty()
         return (model, model_penalty)
-        
+
     def generate_initial_forest(self):
         # Define a multiprocessing pool with the number of CPUs available
-        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        n_processes = multiprocessing.cpu_count() - 1
+        pool = multiprocessing.Pool(processes=n_processes)
 
         try:
             # Use the tqdm wrapper around the multiprocessing pool's map function
-            models = list(tqdm(pool.imap(self.generate_model, range(self.initial_forest_size)), total=self.initial_forest_size, desc='Generating forest'))
+            models = list(tqdm(pool.imap(self.generate_model, range(
+                self.initial_forest_size)), total=self.initial_forest_size, desc='Generating forest'))
         except KeyboardInterrupt:
             pool.terminate()
             pool.join()
@@ -130,7 +133,8 @@ class ModelSpace:
         # Close the multiprocessing pool to release resources
         pool.close()
 
-        sorted_models = [x[0] for x in tqdm(sorted(models, key=lambda x: x[1]), total=len(models), desc='Sorting forest')]
+        sorted_models = [x[0] for x in tqdm(
+            sorted(models, key=lambda x: x[1]), total=len(models), desc='Sorting forest')]
 
         self.models = sorted_models
 
@@ -146,7 +150,8 @@ class ModelSpace:
                 break
             random_entity = random.choice(entities)
             random_position = generate_random_position(random_entity)
-            random_grid_center = find_free_position(entities, random_position, random_entity)
+            random_grid_center = find_free_position(
+                entities, random_position, random_entity)
             random_entity.set_grid_center(random_grid_center)
             connections_for_entity = itertools.filterfalse(
                 lambda c: random_entity.id() not in [c.source(), c.target()], connections)
@@ -167,7 +172,7 @@ class ModelSpace:
 
     def optimise_model_space(self):
         models = self.models[:int(self.top_forest_size)]  # Get top models
-        n_processes = multiprocessing.cpu_count()
+        n_processes = multiprocessing.cpu_count() - 1
         pool = multiprocessing.Pool(processes=n_processes)
 
         partial_fn = partial(
@@ -187,6 +192,9 @@ class ModelSpace:
                     best_model, best_penalty = result
                 pbar.update()
 
+        # Close the multiprocessing pool to release resources
+        pool.close()
+
         print(best_penalty)
         print(best_model.get_size())
         print(best_model.get_intersections_count())
@@ -200,8 +208,8 @@ class ModelSpace:
         center_x = (len(self.canvas[0]) * self.grid_multiplier_x) / 2
         center_y = entity.parent_depth * self.grid_multiplier_y
         mean_position = (center_x, center_y)  # for example
-        std_deviation_y = max_parent_depth * 0.3  # for example
-        std_deviation_x = most_common_parent_depth_count * 1
+        std_deviation_y = max_parent_depth * 1  # for example
+        std_deviation_x = most_common_parent_depth_count * 2
 
         # Generate a random position until a valid one is found
         while True:
