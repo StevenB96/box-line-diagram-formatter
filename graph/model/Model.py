@@ -4,14 +4,15 @@ from collections import Counter
 from utils.NumberedCanvas import NumberedCanvas
 
 class Model:
-    def __init__(self, connections, entities, grid_spacing):
+    def __init__(self, connections, entities, grid_unit):
         self.connections = connections
         self.entities = entities
-        self.grid_spacing = grid_spacing
+        self.grid_unit = grid_unit
         self.font = ('Arial', 10)
         self.grid_line_colour = '#a3aeba'
-        self.grid_gap = 10
-        self.grid_padding = 2
+        self.grid_gap = grid_unit * 10
+        self.grid_multiplier_x = 2.5
+        self.grid_multiplier_y = 1.5
 
     def get_penalty(self):
         size_penalty = self.get_size() * 0.001
@@ -25,10 +26,10 @@ class Model:
         grid_info = self.grid_info    
         root = tk.Tk()
         canvas = NumberedCanvas(root, 
-                                self.grid_spacing,
+                                self.grid_unit,
                                 self.entities + self.connections,                            
-                                width=grid_info['width'] + self.grid_spacing * self.grid_gap, 
-                                height=grid_info['height'] + self.grid_spacing * self.grid_gap,
+                                width=grid_info['width'] + 2 * self.grid_gap, 
+                                height=grid_info['height'] + 2 * self.grid_gap,
                                 bg='white', 
                                 highlightthickness=0)
         canvas.pack()
@@ -236,7 +237,10 @@ class Model:
             print(e)
 
     def round_to_grid(self, number):
-        return round(number / self.grid_spacing) * self.grid_spacing
+        return round(number / self.grid_unit) * self.grid_unit
+        
+    def round_to_gap(self, number):
+        return round(number / self.grid_gap) * self.grid_gap
 
     def set_grid_info(self):
         entities_by_parent_depth  = sorted(
@@ -245,8 +249,10 @@ class Model:
         parent_depths = [entity.parent_depth for entity in entities_by_parent_depth]
         count_dict = Counter(parent_depths)
         most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[0]
-        width = self.round_to_grid((most_common_parent_depth_count + self.grid_padding) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid((max_parent_depth + self.grid_padding) * self.grid_spacing * self.grid_gap)
+        width = self.round_to_gap(
+            (most_common_parent_depth_count * self.grid_multiplier_x) * self.grid_gap)
+        height = self.round_to_gap(
+            (max_parent_depth + self.grid_multiplier_y) * self.grid_gap)
         grid_info = {}
         grid_info['width'] = width
         grid_info['height'] = height

@@ -30,5 +30,5 @@ class FileManager:
             outfile.write(input_json)
 
     def extract_optimisation_parameters(self):
-        self.grid_spacing = int(self.input_dict['mxfile']['diagram']['mxGraphModel']['@gridSize'])
+        self.grid_unit = int(self.input_dict['mxfile']['diagram']['mxGraphModel']['@gridSize'])
         self.root_cell = self.input_dict['mxfile']['diagram']['mxGraphModel']['root']['mxCell'][2:]

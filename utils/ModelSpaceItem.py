@@ -3,7 +3,7 @@ from utils.Helpers import Helpers
 class ModelSpaceItem:
     def __init__(self):
         self.cell = None
-        self.grid_spacing = None
+        self.grid_unit = None
 
     def id(self):
         try:
@@ -39,7 +39,7 @@ class ModelSpaceItem:
             print(e)
 
     def round_to_grid(self, number):
-        return round(number / self.grid_spacing) * self.grid_spacing
+        return round(number / self.grid_unit) * self.grid_unit
     
     def round_to_nearest_quarter(self, num):
         quarter = 0.25

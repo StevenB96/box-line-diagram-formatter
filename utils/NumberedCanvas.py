@@ -2,11 +2,11 @@ import tkinter as tk
 from random import randint
 
 class NumberedCanvas(tk.Canvas):
-    def __init__(self, parent, grid_spacing, items, *args, **kwargs):
+    def __init__(self, parent, grid_unit, items, *args, **kwargs):
         tk.Canvas.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.items = items
-        self.grid_spacing = grid_spacing
+        self.grid_unit = grid_unit
         self.font = ('Arial', 10)
         self.line_colour = '#a3aeba'
         self.draw_grid()
@@ -17,9 +17,9 @@ class NumberedCanvas(tk.Canvas):
         self.delete('gridline', 'rowlabel', 'collabel')
 
         # draw horizontal lines and row labels
-        for y in range(0, self.winfo_height(), self.grid_spacing):
-            self.create_line(0, y, self.winfo_width(), y, fill=self.line_colour, tags='gridline', width=1 if (y % (10 * self.grid_spacing) == 0) == 0 else 2)
-            if (y % (10 * self.grid_spacing) == 0):
+        for y in range(0, self.winfo_height(), self.grid_unit):
+            self.create_line(0, y, self.winfo_width(), y, fill=self.line_colour, tags='gridline', width=1 if (y % (10 * self.grid_unit) == 0) == 0 else 2)
+            if (y % (10 * self.grid_unit) == 0):
                 self.create_text(
                     5, 
                     y+5, 
@@ -28,9 +28,9 @@ class NumberedCanvas(tk.Canvas):
                     font=self.font, tags='rowlabel')
 
         # draw vertical lines and column labels
-        for x in range(0, self.winfo_width(), self.grid_spacing):
-            self.create_line(x, 0, x, self.winfo_height(), fill=self.line_colour, tags='gridline', width=1 if (x % (10 * self.grid_spacing) == 0) == 0 else 2)
-            if (x % (10 * self.grid_spacing) == 0):
+        for x in range(0, self.winfo_width(), self.grid_unit):
+            self.create_line(x, 0, x, self.winfo_height(), fill=self.line_colour, tags='gridline', width=1 if (x % (10 * self.grid_unit) == 0) == 0 else 2)
+            if (x % (10 * self.grid_unit) == 0):
                 self.create_text(
                     x+5, 
                     5, 

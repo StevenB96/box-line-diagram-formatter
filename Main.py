@@ -8,7 +8,7 @@ if __name__ == '__main__':
         file_manager = FileManager()
         file_manager.convert_xml('Example Input.xml', 'Example Input.json')
         root_cell = file_manager.root_cell
-        grid_spacing = file_manager.grid_spacing
-        model_space = ModelSpace(root_cell, grid_spacing)
+        grid_unit = file_manager.grid_unit
+        model_space = ModelSpace(root_cell, grid_unit)
         model_space.optimise_model_space()
 

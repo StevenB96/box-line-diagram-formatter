@@ -2,8 +2,8 @@ from shape_types.connection.Connection import Connection
 
 
 class Line(Connection):
-    def __init__(self, cell, grid_spacing):
+    def __init__(self, cell, grid_unit):
         self.cell = cell
-        self.grid_spacing = grid_spacing
+        self.grid_unit = grid_unit
         self.shape_type = 'Connection'
         self.type = 'Line'
