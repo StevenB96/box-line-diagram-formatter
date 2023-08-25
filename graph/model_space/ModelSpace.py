@@ -14,22 +14,23 @@ from functools import partial
 
 
 class ModelSpace:
-    def __init__(self, root_cell, grid_spacing):
+    def __init__(self, root_cell, grid_unit):
         # Set the initial model space
         self.root_cell = root_cell
-        self.grid_spacing = grid_spacing
+        self.grid_unit = grid_unit
         self.connections = []
         self.initial_entities = []
         self.entity_relationships = []
         self.models = []
-        self.grid_gap = 10
-        self.grid_padding = 2
+        self.grid_gap = grid_unit * 10
+        self.grid_multiplier_x = 2
+        self.grid_multiplier_y = 1.5
         self.generate_shapes()
         self.generate_entity_relationships()
         self.update_entity_relationships()
-        model = Model(self.connections, self.initial_entities, self.grid_spacing)
+        model = Model(self.connections, self.initial_entities, self.grid_unit)
         model.display()
-        self.initial_forest_size = 5 * len(self.initial_entities)
+        self.initial_forest_size = 1 * len(self.initial_entities)
         self.top_forest_size = 5 * len(self.initial_entities)
         self.model_optimisation_time = 5 * len(self.initial_entities)
         self.grid_info = {}
@@ -40,11 +41,11 @@ class ModelSpace:
         for cell in self.root_cell:
             try:
                 if '@vertex' in cell:
-                    rectangle = Rectangle(cell, self.grid_spacing)
+                    rectangle = Rectangle(cell, self.grid_unit)
                     self.initial_entities.append(rectangle)
                 elif '@source' in cell and '@target' in cell:
                     if not ('mxGeometry' in cell and 'Array' in cell['mxGeometry']):
-                        line = Line(cell, self.grid_spacing)
+                        line = Line(cell, self.grid_unit)
                         self.connections.append(line)
             except Exception as e:
                 print(e)
@@ -108,9 +109,12 @@ class ModelSpace:
         models = []
         pbar = tqdm(total=self.initial_forest_size, desc='Generating initial forest')
         while len(models) < self.initial_forest_size:  # Continue until the models length is equal to initial_forest_size
-            self.mutate_entities(entities)
+            for entity in entities:
+                random_position = self.generate_random_position(entity)
+                random_grid_center = self.find_free_position(entities, random_position, entity)
+                entity.set_grid_center(random_grid_center)
             self.update_connections(connections, entities)
-            model = Model(connections, entities, self.grid_spacing)
+            model = Model(connections, entities, self.grid_unit)
 
             # Create a deep copy of the 'model' object and append the copy to the 'models' list
             if model.get_intersections_count() < len(self.initial_entities) * 0.5:
@@ -125,12 +129,6 @@ class ModelSpace:
             bisect.insort_left(sorted_models, model, key=lambda x: model_penalty)
 
         self.models = sorted_models
-
-    def mutate_entities(self, entities):
-        for entity in entities:
-            random_position = self.generate_random_position(entity)
-            random_grid_center = self.find_free_position(entities, random_position, entity)
-            entity.set_grid_center(random_grid_center)
 
     def optimise_model(self, model, model_optimisation_time, generate_random_position, find_free_position, update_connection):
         entities = model.entities
@@ -197,24 +195,33 @@ class ModelSpace:
         best_model.display()
 
     def generate_random_position(self, entity):
+        grid_info = self.grid_info
+        most_common_parent_depth_count = grid_info['most_common_parent_depth_count']
+        max_parent_depth = grid_info['max_parent_depth']
         # Define the mean position and standard deviation
-        mean_position = (5, (entity.parent_depth + self.grid_padding / 2))  # for example
-        std_deviation = 0.25  # for example
+        center_x = (len(self.canvas[0]) * self.grid_multiplier_x) / 2
+        center_y = entity.parent_depth * self.grid_multiplier_y
+        mean_position = (center_x, center_y)  # for example
+        std_deviation_y = max_parent_depth * 0.3  # for example
+        std_deviation_x = most_common_parent_depth_count * 1
 
         # Generate a random position until a valid one is found
         while True:
             # Generate random position based on normal distribution
-            x_pos = random.randint(0, len(self.canvas[0]) - 1)
-            y_pos = int(random.normalvariate(mean_position[1], std_deviation))
-            
+            # x_pos = random.randint(0, len(self.canvas[0]) - 1)
+            x_pos = int(random.normalvariate(
+                mean_position[0], std_deviation_x))
+            y_pos = int(random.normalvariate(
+                mean_position[1], std_deviation_y))
+
             # Check if the position is within the bounds of the matrix
-            if 0 <= x_pos < len(self.canvas) and 0 <= y_pos < len(self.canvas[0]):
+            if 0 <= x_pos < len(self.canvas[0]) and 0 <= y_pos < len(self.canvas):
                 # Found a valid position
                 random_position = self.canvas[y_pos][x_pos]
                 break
 
         return random_position
-    
+
     def find_free_position(self, entities, position, entity):
         """Find a free position for an entity"""
         while position in [entity.grid_center for entity in entities]:
@@ -231,17 +238,20 @@ class ModelSpace:
         return position
 
     def round_to_grid(self, number):
-        return round(number / self.grid_spacing) * self.grid_spacing
+        return round(number / self.grid_unit) * self.grid_unit
+
+    def round_to_gap(self, number):
+        return round(number / self.grid_gap) * self.grid_gap
 
     def set_canvas(self):
         self.set_grid_info()
         grid_info = self.grid_info
         grid = []
-        for y in range(0, grid_info['height'], self.grid_spacing * self.grid_gap):
+        for y in range(0, grid_info['height'], self.grid_gap):
             row = []
-            for x in range(0, grid_info['width'], self.grid_spacing * self.grid_gap):
-                row.append((x + self.grid_spacing * self.grid_gap,
-                           y + self.grid_spacing * self.grid_gap))
+            for x in range(0, grid_info['width'], self.grid_gap):
+                row.append((x + self.grid_gap,
+                           y + self.grid_gap))
             grid.append(row)
         self.canvas = grid
 
@@ -254,10 +264,10 @@ class ModelSpace:
         count_dict = Counter(parent_depths)
         most_common_parent_depth, most_common_parent_depth_count = count_dict.most_common(1)[
             0]
-        width = self.round_to_grid(
-            (most_common_parent_depth_count + self.grid_padding) * self.grid_spacing * self.grid_gap)
-        height = self.round_to_grid(
-            (max_parent_depth + self.grid_padding) * self.grid_spacing * self.grid_gap)
+        width = self.round_to_gap(
+            (most_common_parent_depth_count * self.grid_multiplier_x) * self.grid_gap)
+        height = self.round_to_gap(
+            (max_parent_depth + self.grid_multiplier_y) * self.grid_gap)
         grid_info = {}
         grid_info['width'] = width
         grid_info['height'] = height
